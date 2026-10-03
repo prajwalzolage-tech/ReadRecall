@@ -58,7 +58,7 @@ export default function ProfilePage() {
             );
             const ids = new Set(allAttempts.map((a) => a.id));
             for (const item of local) {
-              if (item.id && !ids.has(item.id)) {
+              if (item.id && !ids.has(item.id) && item.userId === user?.uid) {
                 allAttempts.push(item);
                 ids.add(item.id);
               }

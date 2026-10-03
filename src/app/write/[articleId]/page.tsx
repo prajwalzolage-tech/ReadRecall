@@ -44,9 +44,9 @@ export default function WritePage({ params }: PageProps) {
     }
   }, [loading, user, router]);
 
-  // Fetch article metadata only (strict hiding: text is not loaded)
+  // Fetch article metadata only after auth has loaded
   useEffect(() => {
-    if (!articleId) return;
+    if (!articleId || loading || metadata) return;
 
     const fetchMeta = async () => {
       try {
@@ -63,11 +63,8 @@ export default function WritePage({ params }: PageProps) {
       }
     };
 
-    // Fetch immediately, even without idToken (article detail route is public)
-    if (!metadata) {
-      fetchMeta();
-    }
-  }, [idToken, articleId, metadata]);
+    fetchMeta();
+  }, [idToken, articleId, metadata, loading]);
 
   const wordCount = countWords(summary);
   const canSubmit = wordCount >= SUMMARY_MIN_WORDS && !submitting;

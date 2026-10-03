@@ -122,14 +122,14 @@ export default function SearchPage() {
       </div>
 
       {/* Search Input Bar */}
-      <form onSubmit={handleSearch} className="flex gap-3">
+      <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search papers (e.g., 'attention is all you need', 'raft consensus', 'zero knowledge')..."
+            placeholder="Search papers (e.g., 'attention is all you need', 'raft consensus')..."
             className="w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-4 focus:ring-slate-100 shadow-xs transition"
           />
         </div>
@@ -137,7 +137,7 @@ export default function SearchPage() {
         <button
           type="submit"
           disabled={searching || query.trim().length < 2}
-          className={`inline-flex items-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition ${
+          className={`inline-flex w-full sm:w-auto justify-center items-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition ${
             searching || query.trim().length < 2
               ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
               : 'bg-slate-900 hover:bg-slate-800 cursor-pointer'

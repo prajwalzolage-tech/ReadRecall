@@ -36,6 +36,9 @@ function getAdminApp() {
 }
 
 export function isFirestoreConfigured(): boolean {
+  if (process.env.FIREBASE_USE_ADC === 'true') {
+    return true; // Allow Application Default Credentials (e.g. gcloud auth)
+  }
   return Boolean(
     process.env.FIREBASE_PROJECT_ID &&
     process.env.FIREBASE_CLIENT_EMAIL &&

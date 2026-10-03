@@ -3,8 +3,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyRequest } from '@/lib/auth-helper';
-import { db, isFirestoreConfigured } from '@/lib/firebase/admin';
-import { saveArticle } from '@/lib/data-store';
+import app from '@/lib/firebase/client';
+import { getFirestore, collection, query, where, limit, getDocs } from 'firebase/firestore';
+import { saveArticle, isFirestoreConfigured } from '@/lib/data-store';
 import { validateUrl } from '@/lib/ssrf-guard';
 import { extractText, computeHash } from '@/lib/text-extraction';
 import { cleanArticleText } from '@/lib/text-cleaning';
@@ -102,11 +103,13 @@ export async function POST(request: NextRequest) {
     const contentHash = computeHash(truncatedText);
     if (isFirestoreConfigured()) {
       try {
-        const existingSnap = await db
-          .collection('articles')
-          .where('contentHash', '==', contentHash)
-          .limit(1)
-          .get();
+        const db = getFirestore(app);
+        const q = query(
+          collection(db, 'articles'),
+          where('contentHash', '==', contentHash),
+          limit(1)
+        );
+        const existingSnap = await getDocs(q);
 
         if (!existingSnap.empty) {
           return NextResponse.json({

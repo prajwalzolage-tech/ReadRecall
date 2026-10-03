@@ -132,7 +132,7 @@ export function UploadForm({
       className={`rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm ${className}`}
     >
       {/* Mode Tabs */}
-      <div className="flex gap-1.5 rounded-xl border border-slate-200 bg-slate-50 p-1 mb-6">
+      <div className="flex flex-col sm:flex-row gap-1.5 rounded-xl border border-slate-200 bg-slate-50 p-1 mb-6">
         <button
           type="button"
           onClick={() => {

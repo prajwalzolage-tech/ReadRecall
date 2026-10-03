@@ -11,7 +11,8 @@ const firebaseConfig = {
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'readercall-8e3f0',
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'readercall-8e3f0.firebasestorage.app',
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '466796395460',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:466796395460:web:cb0f3b26b258c88cdd0291',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:466796395460:web:ed7513b6755a63b0dd0291',
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-ZX8QH54Y09',
 };
 
 // Singleton: reuse existing app if already initialized

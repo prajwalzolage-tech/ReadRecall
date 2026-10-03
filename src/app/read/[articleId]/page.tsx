@@ -44,13 +44,9 @@ export default function ReadPage({ params }: PageProps) {
     }
   }, [loading, user, router]);
 
-  // Track if we already started fetching to avoid double-fetch from idToken changes
-  const fetchStartedRef = useRef(false);
-
-  // Fetch article - start immediately, don't wait for idToken
+  // Fetch article after auth loads
   useEffect(() => {
-    if (!articleId || fetchStartedRef.current) return;
-    fetchStartedRef.current = true;
+    if (!articleId || loading) return;
 
     let isCancelled = false;
     const fetchArticle = async () => {
@@ -98,7 +94,7 @@ export default function ReadPage({ params }: PageProps) {
     return () => {
       isCancelled = true;
     };
-  }, [articleId, sectionTitle, idToken]);
+  }, [articleId, sectionTitle, idToken, loading]);
 
   const handleFinishReading = useCallback(() => {
     if (isNavigating) return; // prevent double navigation
