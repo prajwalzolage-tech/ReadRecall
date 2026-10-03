@@ -12,11 +12,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader) {
-    await verifyRequest(request).catch(() => null);
-  }
-
   try {
     const { id } = await params;
     const article = await getArticleById(id);
