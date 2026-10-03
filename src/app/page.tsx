@@ -27,43 +27,63 @@ export default function HomePage() {
   }, [loading, user, router]);
 
   useEffect(() => {
-    if (!idToken) return;
+    let isCancelled = false;
 
     const fetchData = async () => {
       setFetching(true);
+      setError(null);
       try {
-        const [articlesRes, attemptsRes] = await Promise.all([
-          fetch('/api/articles', {
-            headers: { Authorization: `Bearer ${idToken}` },
-          }),
-          fetch('/api/attempts', {
-            headers: { Authorization: `Bearer ${idToken}` },
-          }),
-        ]);
-
-        if (!articlesRes.ok) throw new Error('Failed to fetch articles');
-        const articlesData = await articlesRes.json();
-        const loadedArticles: ArticleListItem[] = articlesData.articles || [];
-        setArticles(loadedArticles);
-
-        let recentAttempts: Attempt[] = [];
-        if (attemptsRes.ok) {
-          const attemptsData = await attemptsRes.json();
-          recentAttempts = attemptsData.attempts || [];
+        const headers: Record<string, string> = {};
+        if (idToken) {
+          headers['Authorization'] = `Bearer ${idToken}`;
         }
 
-        if (loadedArticles.length > 0) {
+        const [articlesRes, attemptsRes] = await Promise.all([
+          fetch('/api/articles', { headers }),
+          idToken
+            ? fetch('/api/attempts', { headers }).catch(() => null)
+            : Promise.resolve(null),
+        ]);
+
+        if (!articlesRes.ok) {
+          const errData = await articlesRes.json().catch(() => null);
+          throw new Error(
+            errData?.error || `Failed to fetch articles (${articlesRes.status})`
+          );
+        }
+
+        const articlesData = await articlesRes.json();
+        const loadedArticles: ArticleListItem[] = articlesData.articles || [];
+        if (!isCancelled) {
+          setArticles(loadedArticles);
+        }
+
+        let recentAttempts: Attempt[] = [];
+        if (attemptsRes && attemptsRes.ok) {
+          const attemptsData = await attemptsRes.json().catch(() => null);
+          recentAttempts = attemptsData?.attempts || [];
+        }
+
+        if (!isCancelled && loadedArticles.length > 0) {
           const rec = pickRecommendedArticle(loadedArticles, recentAttempts);
           setRecommendation(rec);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        if (!isCancelled) {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+        }
       } finally {
-        setFetching(false);
+        if (!isCancelled) {
+          setFetching(false);
+        }
       }
     };
 
     fetchData();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [idToken]);
 
   if (loading) {

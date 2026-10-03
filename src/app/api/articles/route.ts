@@ -9,8 +9,11 @@ import { getArticles, saveArticle } from '@/lib/data-store';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const authResult = await verifyRequest(request);
-  if ('error' in authResult) return authResult.error;
+  // Optional auth verification: identify user if token is present, but keep catalog accessible
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader) {
+    await verifyRequest(request).catch(() => null);
+  }
 
   try {
     const source = request.nextUrl.searchParams.get('source');

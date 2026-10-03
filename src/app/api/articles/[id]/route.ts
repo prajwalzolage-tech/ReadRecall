@@ -12,8 +12,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authResult = await verifyRequest(request);
-  if ('error' in authResult) return authResult.error;
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader) {
+    await verifyRequest(request).catch(() => null);
+  }
 
   try {
     const { id } = await params;

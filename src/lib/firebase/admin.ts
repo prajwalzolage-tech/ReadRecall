@@ -12,11 +12,14 @@ function getAdminApp() {
     return getApps()[0];
   }
 
-  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const projectId =
+    process.env.FIREBASE_PROJECT_ID ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+    'readercall-8e3f0';
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-  if (projectId && clientEmail && privateKey) {
+  if (clientEmail && privateKey) {
     return initializeApp({
       credential: cert({
         projectId,
@@ -26,9 +29,9 @@ function getAdminApp() {
     });
   }
 
-  // Graceful fallback for build-time analysis or local dev without configured credentials
+  // Graceful fallback for server-side auth verification and local dev
   return initializeApp({
-    projectId: projectId || 'demo-readrecall',
+    projectId,
   });
 }
 

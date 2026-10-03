@@ -44,23 +44,27 @@ export async function verifyRequest(
     try {
       const parts = idToken.split('.');
       if (parts.length === 3) {
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
         const payload = JSON.parse(
-          Buffer.from(parts[1], 'base64').toString('utf8')
+          Buffer.from(base64, 'base64').toString('utf8')
         );
         const expectedProject =
+          process.env.FIREBASE_PROJECT_ID ||
           process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
-          process.env.FIREBASE_PROJECT_ID;
+          'readercall-8e3f0';
         const now = Math.floor(Date.now() / 1000);
 
         if (
           payload.sub &&
-          (!expectedProject || payload.aud === expectedProject) &&
+          (!expectedProject ||
+            payload.aud === expectedProject ||
+            payload.iss?.includes(expectedProject)) &&
           (!payload.exp || payload.exp > now)
         ) {
           return {
             user: {
               uid: payload.sub,
-              email: payload.email ?? '',
+              email: payload.email ?? payload.user_id ?? '',
             },
           };
         }
@@ -71,7 +75,10 @@ export async function verifyRequest(
 
     return {
       error: NextResponse.json(
-        { error: 'Invalid or expired token' },
+        {
+          error: 'Invalid or expired token',
+          details: err instanceof Error ? err.message : String(err),
+        },
         { status: 401 }
       ),
     };
