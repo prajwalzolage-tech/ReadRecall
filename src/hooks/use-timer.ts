@@ -17,40 +17,41 @@ export function useTimer({
   onExpire,
 }: UseTimerOptions) {
   const [timeLeft, setTimeLeft] = useState<number>(totalSeconds);
-  const [isRunning, setIsRunning] = useState<boolean>(autoStart);
+  const [isRunning, setIsRunning] = useState<boolean>(false);
 
   const onExpireRef = useRef(onExpire);
   const endTimeRef = useRef<number | null>(null);
-  const hasStartedRef = useRef(false);
   const expiredFiredRef = useRef(false);
+  const initializedRef = useRef(false);
+  const totalSecondsRef = useRef(totalSeconds);
 
   // Keep callback ref updated
   useEffect(() => {
     onExpireRef.current = onExpire;
   }, [onExpire]);
 
-  // When autoStart becomes true (or on initial mount if already true) and hasn't started yet
-  useEffect(() => {
-    if (autoStart && !hasStartedRef.current) {
-      hasStartedRef.current = true;
-      expiredFiredRef.current = false;
-      endTimeRef.current = Date.now() + totalSeconds * 1000;
-      setTimeLeft(totalSeconds);
-      setIsRunning(true);
-    }
-  }, [autoStart, totalSeconds]);
+  // Track latest totalSeconds for reset
+  totalSecondsRef.current = totalSeconds;
 
-  const timeLeftRef = useRef(timeLeft);
+  // Initialize/start the timer when autoStart transitions to true
+  // This only fires ONCE per mount (or when autoStart first becomes true)
   useEffect(() => {
-    timeLeftRef.current = timeLeft;
-  }, [timeLeft]);
+    if (!autoStart || initializedRef.current) return;
+
+    initializedRef.current = true;
+    expiredFiredRef.current = false;
+    const duration = totalSecondsRef.current;
+    endTimeRef.current = Date.now() + duration * 1000;
+    setTimeLeft(duration);
+    setIsRunning(true);
+  }, [autoStart]);
 
   // Handle countdown with drift-free Date.now()
   useEffect(() => {
     if (!isRunning) return;
 
     if (!endTimeRef.current) {
-      endTimeRef.current = Date.now() + timeLeftRef.current * 1000;
+      endTimeRef.current = Date.now() + timeLeft * 1000;
     }
 
     const tick = () => {
@@ -74,13 +75,15 @@ export function useTimer({
     const interval = setInterval(tick, 500);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning]);
 
   const start = useCallback(() => {
     expiredFiredRef.current = false;
-    endTimeRef.current = Date.now() + timeLeft * 1000;
+    endTimeRef.current = Date.now() + totalSecondsRef.current * 1000;
+    setTimeLeft(totalSecondsRef.current);
     setIsRunning(true);
-  }, [timeLeft]);
+  }, []);
 
   const pause = useCallback(() => {
     setIsRunning(false);
@@ -99,14 +102,14 @@ export function useTimer({
 
   const reset = useCallback(
     (newTotal?: number) => {
-      const duration = newTotal ?? totalSeconds;
-      hasStartedRef.current = autoStart;
+      const duration = newTotal ?? totalSecondsRef.current;
+      initializedRef.current = autoStart;
       expiredFiredRef.current = false;
       endTimeRef.current = autoStart ? Date.now() + duration * 1000 : null;
       setTimeLeft(duration);
       setIsRunning(autoStart);
     },
-    [autoStart, totalSeconds]
+    [autoStart]
   );
 
   return {

@@ -116,7 +116,7 @@ Overall Rating: ${rating}/10`;
   if (model) {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 2500);
+      const timer = setTimeout(() => controller.abort(), 15000);
 
       const response = await generateText({
         model,

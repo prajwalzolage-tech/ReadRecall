@@ -205,7 +205,7 @@ export class FreeAIJevProvider implements JevProvider {
     const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (geminiKey) {
       const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-      const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+      const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
       return { model: google(modelName), name: modelName };
     }
 

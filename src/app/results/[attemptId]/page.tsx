@@ -3,7 +3,7 @@
 
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useState, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
 import { RatingDisplay } from '@/components/rating-display';
@@ -17,6 +17,28 @@ interface PageProps {
   params: Promise<{ attemptId: string }>;
 }
 
+// Default values for missing dimension scores / guards / flags
+const DEFAULT_DIMENSION_SCORES = {
+  coverage: 0,
+  mainIdea: 0,
+  faithfulness: 0,
+  clarity: 0,
+  appliedPurpose: 0,
+};
+
+const DEFAULT_GUARDS = {
+  injectionGuard: false,
+  wordCountGuard: false,
+  copyGuard: false,
+  contradictionGuard: false,
+  offTopicGuard: false,
+};
+
+const DEFAULT_FLAGS = {
+  lowConfidence: false,
+  copyRatio: 0,
+};
+
 export default function ResultsPage({ params }: PageProps) {
   const { attemptId } = use(params);
   const router = useRouter();
@@ -27,6 +49,7 @@ export default function ResultsPage({ params }: PageProps) {
   const [article, setArticle] = useState<Article | null>(null);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const loadStartedRef = useRef(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -35,15 +58,41 @@ export default function ResultsPage({ params }: PageProps) {
   }, [loading, user, router]);
 
   useEffect(() => {
-    if (!attemptId) return;
+    if (!attemptId || loading) return;
+    // Don't run again after the first successful load
+    if (loadStartedRef.current) return;
+    loadStartedRef.current = true;
 
     const loadData = async () => {
       setFetching(true);
       setError(null);
       try {
-        // 1. Fetch current attempt (try server first if token available)
+        // 1. Try client-side storage FIRST (most reliable on serverless)
         let attemptData: Attempt | null = null;
-        if (idToken) {
+
+        try {
+          const cached =
+            sessionStorage.getItem(`readrecall_attempt_${attemptId}`) ||
+            sessionStorage.getItem('readrecall_current_attempt');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed.id === attemptId) {
+              attemptData = parsed;
+            }
+          }
+          if (!attemptData) {
+            const all = JSON.parse(
+              localStorage.getItem('readrecall_user_attempts') || '[]'
+            );
+            attemptData =
+              all.find((a: any) => a.id === attemptId) || null;
+          }
+        } catch {
+          // ignore storage failure
+        }
+
+        // 2. If not in client storage, try server API
+        if (!attemptData && idToken) {
           try {
             const attemptRes = await fetch(`/api/attempts/${attemptId}`, {
               headers: { Authorization: `Bearer ${idToken}` },
@@ -52,41 +101,17 @@ export default function ResultsPage({ params }: PageProps) {
               attemptData = await attemptRes.json();
             }
           } catch {
-            // ignore network failure, fallback to client storage
-          }
-        }
-
-        // 2. Client-side resilience fallback for serverless environments
-        if (!attemptData) {
-          try {
-            const cached =
-              sessionStorage.getItem(`readrecall_attempt_${attemptId}`) ||
-              sessionStorage.getItem('readrecall_current_attempt');
-            if (cached) {
-              const parsed = JSON.parse(cached);
-              if (parsed.id === attemptId) {
-                attemptData = parsed;
-              }
-            }
-            if (!attemptData) {
-              const all = JSON.parse(
-                localStorage.getItem('readrecall_user_attempts') || '[]'
-              );
-              attemptData =
-                all.find((a: any) => a.id === attemptId) || null;
-            }
-          } catch {
-            // ignore storage failure
+            // ignore network failure
           }
         }
 
         if (!attemptData) {
-          throw new Error('Attempt not found');
+          throw new Error('Attempt not found. Please try evaluating again.');
         }
 
         setAttempt(attemptData);
 
-        // 3. Re-sync to server in background if recovered from client storage
+        // 3. Re-sync to server in background (fire and forget)
         if (idToken) {
           fetch('/api/attempts', {
             method: 'POST',
@@ -98,22 +123,36 @@ export default function ResultsPage({ params }: PageProps) {
           }).catch(() => null);
         }
 
-        // 4. Fetch article
-        const articleHeaders: Record<string, string> = {};
-        if (idToken) articleHeaders['Authorization'] = `Bearer ${idToken}`;
-        const articleRes = await fetch(`/api/articles/${attemptData.articleId}`, {
-          headers: articleHeaders,
-        });
-        if (articleRes.ok) {
-          const articleData: Article = await articleRes.json();
-          setArticle(articleData);
+        // 4. Fetch article for reveal view
+        try {
+          const articleHeaders: Record<string, string> = {};
+          if (idToken) articleHeaders['Authorization'] = `Bearer ${idToken}`;
+          const articleRes = await fetch(`/api/articles/${attemptData.articleId}`, {
+            headers: articleHeaders,
+          });
+          if (articleRes.ok) {
+            const articleData: Article = await articleRes.json();
+            setArticle(articleData);
+          }
+        } catch {
+          // Article fetch is non-critical for results display
         }
 
         // 5. If retry, fetch original attempt for improvement delta
         if (attemptData.retryOf) {
           try {
             let origData: Attempt | null = null;
-            if (idToken) {
+            // Check local storage first
+            try {
+              const all = JSON.parse(
+                localStorage.getItem('readrecall_user_attempts') || '[]'
+              );
+              origData =
+                all.find((a: any) => a.id === attemptData.retryOf) || null;
+            } catch {
+              // ignore
+            }
+            if (!origData && idToken) {
               const originalRes = await fetch(
                 `/api/attempts/${attemptData.retryOf}`,
                 {
@@ -123,13 +162,6 @@ export default function ResultsPage({ params }: PageProps) {
               if (originalRes.ok) {
                 origData = await originalRes.json();
               }
-            }
-            if (!origData) {
-              const all = JSON.parse(
-                localStorage.getItem('readrecall_user_attempts') || '[]'
-              );
-              origData =
-                all.find((a: any) => a.id === attemptData.retryOf) || null;
             }
             if (origData) setOriginalAttempt(origData);
           } catch {
@@ -144,7 +176,7 @@ export default function ResultsPage({ params }: PageProps) {
     };
 
     loadData();
-  }, [idToken, attemptId]);
+  }, [attemptId, idToken, loading]);
 
   if (loading || fetching) {
     return (
@@ -158,12 +190,12 @@ export default function ResultsPage({ params }: PageProps) {
   if (error || !attempt) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
-        <div className="rounded-xl border border-rose-800/40 bg-rose-950/20 p-6 text-rose-300">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-700 text-sm">
           {error || 'Attempt could not be found'}
         </div>
         <button
           onClick={() => router.push('/')}
-          className="mt-6 rounded-lg bg-slate-800 px-4 py-2 text-sm text-white"
+          className="mt-6 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800 transition"
         >
           Return Home
         </button>
@@ -171,7 +203,24 @@ export default function ResultsPage({ params }: PageProps) {
     );
   }
 
-  const delta = originalAttempt ? computeDelta(originalAttempt, attempt) : null;
+  // Ensure dimension scores, guards, flags have defaults to prevent crashes
+  const safeAttempt = {
+    ...attempt,
+    dimensionScores: {
+      ...DEFAULT_DIMENSION_SCORES,
+      ...(attempt.dimensionScores || {}),
+    },
+    guards: {
+      ...DEFAULT_GUARDS,
+      ...(attempt.guards || {}),
+    },
+    flags: {
+      ...DEFAULT_FLAGS,
+      ...(attempt.flags || {}),
+    },
+  };
+
+  const delta = originalAttempt ? computeDelta(originalAttempt, safeAttempt) : null;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 space-y-8">
@@ -214,19 +263,19 @@ export default function ResultsPage({ params }: PageProps) {
 
       {/* 1. Rating & Dimension Breakdown Display */}
       <RatingDisplay
-        rating={attempt.rating}
-        dimensionScores={attempt.dimensionScores}
-        guards={attempt.guards}
-        flags={attempt.flags}
+        rating={safeAttempt.rating}
+        dimensionScores={safeAttempt.dimensionScores}
+        guards={safeAttempt.guards}
+        flags={safeAttempt.flags}
       />
 
       {/* 2. Streamed AI Tutor Coaching Feedback */}
       {idToken && (
         <FeedbackStream
-          articleId={attempt.articleId}
-          summary={attempt.summary || ''}
-          jevResults={(attempt as any).jevResults || {}}
-          rating={attempt.rating}
+          articleId={safeAttempt.articleId}
+          summary={safeAttempt.summary || ''}
+          jevResults={(safeAttempt as any).jevResults || {}}
+          rating={safeAttempt.rating}
           idToken={idToken}
         />
       )}
@@ -237,7 +286,7 @@ export default function ResultsPage({ params }: PageProps) {
           articleTitle={article.title}
           articleText={article.text}
           keyPoints={article.keyPoints}
-          jevResults={(attempt as any).jevResults}
+          jevResults={(safeAttempt as any).jevResults}
           onRetry={() => router.push(`/write/${article.id}?retry=${attempt.id}`)}
         />
       )}

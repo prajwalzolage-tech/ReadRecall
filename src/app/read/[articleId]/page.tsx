@@ -3,7 +3,7 @@
 
 'use client';
 
-import React, { useEffect, useState, use, useCallback } from 'react';
+import React, { useEffect, useState, use, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
 import { ReadingTimer } from '@/components/reading-timer';
@@ -14,6 +14,10 @@ import type { Article, Section } from '@/types';
 
 interface PageProps {
   params: Promise<{ articleId: string }>;
+}
+
+function computeReadingDuration(wordCount: number): number {
+  return Math.max(30, Math.ceil((wordCount / WORDS_PER_MINUTE) * 60) + TIMER_BUFFER_SECONDS);
 }
 
 export default function ReadPage({ params }: PageProps) {
@@ -27,6 +31,11 @@ export default function ReadPage({ params }: PageProps) {
   const [activeSection, setActiveSection] = useState<Section | null>(null);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Compute reading duration based on actual article data
+  // Use a stable value: only compute once when article loads
+  const [readingDuration, setReadingDuration] = useState(105); // default ~1:45 for 300 words
 
   // Authentication check
   useEffect(() => {
@@ -35,17 +44,20 @@ export default function ReadPage({ params }: PageProps) {
     }
   }, [loading, user, router]);
 
-  const [isNavigating, setIsNavigating] = useState(false);
+  // Track if we already started fetching to avoid double-fetch from idToken changes
+  const fetchStartedRef = useRef(false);
 
-  // Fetch article immediately
+  // Fetch article - start immediately, don't wait for idToken
   useEffect(() => {
-    if (!articleId) return;
+    if (!articleId || fetchStartedRef.current) return;
+    fetchStartedRef.current = true;
 
     let isCancelled = false;
     const fetchArticle = async () => {
       setFetching(true);
       setError(null);
       try {
+        // Don't require auth for reading articles (articles route is public)
         const headers: Record<string, string> = {};
         if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
         const res = await fetch(`/api/articles/${articleId}`, { headers });
@@ -56,10 +68,19 @@ export default function ReadPage({ params }: PageProps) {
         if (!isCancelled) {
           setArticle(data);
 
+          // Set reading duration once based on actual word count
+          let targetWords = data.wordCount ?? 300;
+          let matchedSection: Section | null = null;
+
           if (sectionTitle && data.sections) {
-            const matched = data.sections.find((s: Section) => s.title === sectionTitle);
-            if (matched) setActiveSection(matched);
+            matchedSection = data.sections.find((s: Section) => s.title === sectionTitle) || null;
+            if (matchedSection) {
+              setActiveSection(matchedSection);
+              targetWords = matchedSection.wordCount;
+            }
           }
+
+          setReadingDuration(computeReadingDuration(targetWords));
         }
       } catch (err) {
         if (!isCancelled) {
@@ -77,23 +98,18 @@ export default function ReadPage({ params }: PageProps) {
     return () => {
       isCancelled = true;
     };
-  }, [idToken, articleId, sectionTitle]);
-
-  const targetWordCount = activeSection ? activeSection.wordCount : article?.wordCount ?? 300;
-  const readingDurationSeconds = Math.max(
-    30,
-    Math.ceil((targetWordCount / WORDS_PER_MINUTE) * 60) + TIMER_BUFFER_SECONDS
-  );
+  }, [articleId, sectionTitle, idToken]);
 
   const handleFinishReading = useCallback(() => {
+    if (isNavigating) return; // prevent double navigation
     setIsNavigating(true);
     // Navigate to write page. DO NOT store article text anywhere.
     const query = sectionTitle ? `?section=${encodeURIComponent(sectionTitle)}` : '';
     router.push(`/write/${articleId}${query}`);
-  }, [articleId, sectionTitle, router]);
+  }, [articleId, sectionTitle, router, isNavigating]);
 
   const timer = useTimer({
-    totalSeconds: readingDurationSeconds,
+    totalSeconds: readingDuration,
     autoStart: !fetching && !!article,
     onExpire: handleFinishReading,
   });
@@ -130,6 +146,7 @@ export default function ReadPage({ params }: PageProps) {
 
   const displayText = activeSection ? activeSection.text : article.text;
   const displayTitle = activeSection ? `${article.title} — ${activeSection.title}` : article.title;
+  const targetWordCount = activeSection ? activeSection.wordCount : article.wordCount;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 select-none">
@@ -154,14 +171,14 @@ export default function ReadPage({ params }: PageProps) {
               {displayTitle}
             </h1>
             <span className="text-xs text-slate-500 font-medium">
-              {targetWordCount} words • ~{Math.ceil(readingDurationSeconds / 60)} min read
+              {targetWordCount} words • ~{Math.ceil(readingDuration / 60)} min read
             </span>
           </div>
         </div>
 
         <ReadingTimer
           timeLeft={timer.timeLeft}
-          totalDuration={readingDurationSeconds}
+          totalDuration={readingDuration}
           onFinishEarly={timer.finish}
         />
       </div>

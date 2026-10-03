@@ -72,11 +72,11 @@ export function RatingDisplay({
   }
 
   const dimensions = [
-    { label: 'Key Point Coverage', score: dimensionScores.coverage, weight: '35%' },
-    { label: 'Central Thesis / Main Idea', score: dimensionScores.mainIdea, weight: '25%' },
-    { label: 'Factual Faithfulness', score: dimensionScores.faithfulness, weight: '25%' },
-    { label: 'Clarity & Coherence', score: dimensionScores.clarity, weight: '10%' },
-    { label: 'Applied Purpose', score: dimensionScores.appliedPurpose, weight: '5%' },
+    { label: 'Key Point Coverage', score: dimensionScores?.coverage ?? 0, weight: '35%' },
+    { label: 'Central Thesis / Main Idea', score: dimensionScores?.mainIdea ?? 0, weight: '25%' },
+    { label: 'Factual Faithfulness', score: dimensionScores?.faithfulness ?? 0, weight: '25%' },
+    { label: 'Clarity & Coherence', score: dimensionScores?.clarity ?? 0, weight: '10%' },
+    { label: 'Applied Purpose', score: dimensionScores?.appliedPurpose ?? 0, weight: '5%' },
   ];
 
   return (
@@ -93,7 +93,7 @@ export function RatingDisplay({
               <Award className="h-3.5 w-3.5" />
               {tierStyle.label}
             </span>
-            {flags.lowConfidence && (
+            {flags?.lowConfidence && (
               <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800">
                 <AlertTriangle className="h-3 w-3" />
                 Low Confidence
@@ -124,33 +124,33 @@ export function RatingDisplay({
 
       {/* Safety & Quality Guards Alerts */}
       <div className="my-4 space-y-2">
-        {guards.injectionGuard && (
+        {guards?.injectionGuard && (
           <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-700">
             <ShieldAlert className="h-4 w-4 shrink-0 text-rose-600" />
             <span>Prompt injection instructions detected in summary. Rating set to 1.</span>
           </div>
         )}
-        {guards.wordCountGuard && (
+        {guards?.wordCountGuard && (
           <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-700">
             <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
             <span>Summary length was below the 15-word minimum threshold.</span>
           </div>
         )}
-        {guards.copyGuard && (
+        {guards?.copyGuard && (
           <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-800">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
             <span>
-              Verbatim copy ratio ({Math.round(flags.copyRatio * 100)}%) exceeded 60%. Rating capped at 4.
+              Verbatim copy ratio ({Math.round((flags?.copyRatio ?? 0) * 100)}%) exceeded 60%. Rating capped at 4.
             </span>
           </div>
         )}
-        {guards.contradictionGuard && (
+        {guards?.contradictionGuard && (
           <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-800">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
             <span>Contradictory claims identified against the text. Rating capped at 5.</span>
           </div>
         )}
-        {guards.offTopicGuard && (
+        {guards?.offTopicGuard && (
           <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-800">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
             <span>Off-topic content detected. Rating capped at 2.</span>

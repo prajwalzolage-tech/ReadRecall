@@ -46,12 +46,14 @@ export default function WritePage({ params }: PageProps) {
 
   // Fetch article metadata only (strict hiding: text is not loaded)
   useEffect(() => {
-    if (!idToken || !articleId) return;
+    if (!articleId) return;
 
     const fetchMeta = async () => {
       try {
+        const headers: Record<string, string> = {};
+        if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
         const res = await fetch(`/api/articles/${articleId}?metadataOnly=true`, {
-          headers: { Authorization: `Bearer ${idToken}` },
+          headers,
         });
         if (!res.ok) throw new Error('Failed to load article details');
         const data = await res.json();
@@ -61,8 +63,11 @@ export default function WritePage({ params }: PageProps) {
       }
     };
 
-    fetchMeta();
-  }, [idToken, articleId]);
+    // Fetch immediately, even without idToken (article detail route is public)
+    if (!metadata) {
+      fetchMeta();
+    }
+  }, [idToken, articleId, metadata]);
 
   const wordCount = countWords(summary);
   const canSubmit = wordCount >= SUMMARY_MIN_WORDS && !submitting;

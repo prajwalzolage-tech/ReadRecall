@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Externalize packages that have ESM/CJS compatibility issues on Vercel serverless
+  serverExternalPackages: ['firebase-admin'],
 };
 
 export default nextConfig;
