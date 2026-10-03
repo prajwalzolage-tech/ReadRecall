@@ -1,0 +1,23 @@
+{
+  "Jev-Only": {
+    "mae": 3.82,
+    "spearman": -0.208,
+    "qwk": -0.068,
+    "p50LatencyMs": 6,
+    "p95LatencyMs": 18
+  },
+  "LLM-Only": {
+    "mae": 0.9,
+    "spearman": 0.772,
+    "qwk": 0.802,
+    "p50LatencyMs": 1007,
+    "p95LatencyMs": 1104
+  },
+  "Hybrid (ReadRecall Pipeline)": {
+    "mae": 2.78,
+    "spearman": 0.494,
+    "qwk": 0.402,
+    "p50LatencyMs": 11,
+    "p95LatencyMs": 23
+  }
+}
