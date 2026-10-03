@@ -35,38 +35,103 @@ export default function ResultsPage({ params }: PageProps) {
   }, [loading, user, router]);
 
   useEffect(() => {
-    if (!idToken || !attemptId) return;
+    if (!attemptId) return;
 
     const loadData = async () => {
       setFetching(true);
+      setError(null);
       try {
-        // 1. Fetch current attempt
-        const attemptRes = await fetch(`/api/attempts/${attemptId}`, {
-          headers: { Authorization: `Bearer ${idToken}` },
-        });
-        if (!attemptRes.ok) throw new Error('Attempt not found');
-        const attemptData: Attempt = await attemptRes.json();
+        // 1. Fetch current attempt (try server first if token available)
+        let attemptData: Attempt | null = null;
+        if (idToken) {
+          try {
+            const attemptRes = await fetch(`/api/attempts/${attemptId}`, {
+              headers: { Authorization: `Bearer ${idToken}` },
+            });
+            if (attemptRes.ok) {
+              attemptData = await attemptRes.json();
+            }
+          } catch {
+            // ignore network failure, fallback to client storage
+          }
+        }
+
+        // 2. Client-side resilience fallback for serverless environments
+        if (!attemptData) {
+          try {
+            const cached =
+              sessionStorage.getItem(`readrecall_attempt_${attemptId}`) ||
+              sessionStorage.getItem('readrecall_current_attempt');
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (parsed.id === attemptId) {
+                attemptData = parsed;
+              }
+            }
+            if (!attemptData) {
+              const all = JSON.parse(
+                localStorage.getItem('readrecall_user_attempts') || '[]'
+              );
+              attemptData =
+                all.find((a: any) => a.id === attemptId) || null;
+            }
+          } catch {
+            // ignore storage failure
+          }
+        }
+
+        if (!attemptData) {
+          throw new Error('Attempt not found');
+        }
+
         setAttempt(attemptData);
 
-        // 2. Fetch article
+        // 3. Re-sync to server in background if recovered from client storage
+        if (idToken) {
+          fetch('/api/attempts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify(attemptData),
+          }).catch(() => null);
+        }
+
+        // 4. Fetch article
+        const articleHeaders: Record<string, string> = {};
+        if (idToken) articleHeaders['Authorization'] = `Bearer ${idToken}`;
         const articleRes = await fetch(`/api/articles/${attemptData.articleId}`, {
-          headers: { Authorization: `Bearer ${idToken}` },
+          headers: articleHeaders,
         });
         if (articleRes.ok) {
           const articleData: Article = await articleRes.json();
           setArticle(articleData);
         }
 
-        // 3. If retry, fetch original attempt for improvement delta
+        // 5. If retry, fetch original attempt for improvement delta
         if (attemptData.retryOf) {
           try {
-            const originalRes = await fetch(`/api/attempts/${attemptData.retryOf}`, {
-              headers: { Authorization: `Bearer ${idToken}` },
-            });
-            if (originalRes.ok) {
-              const origData = await originalRes.json();
-              setOriginalAttempt(origData);
+            let origData: Attempt | null = null;
+            if (idToken) {
+              const originalRes = await fetch(
+                `/api/attempts/${attemptData.retryOf}`,
+                {
+                  headers: { Authorization: `Bearer ${idToken}` },
+                }
+              );
+              if (originalRes.ok) {
+                origData = await originalRes.json();
+              }
             }
+            if (!origData) {
+              const all = JSON.parse(
+                localStorage.getItem('readrecall_user_attempts') || '[]'
+              );
+              origData =
+                all.find((a: any) => a.id === attemptData.retryOf) || null;
+            }
+            if (origData) setOriginalAttempt(origData);
           } catch {
             // ignore
           }

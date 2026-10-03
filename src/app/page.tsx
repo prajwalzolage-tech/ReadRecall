@@ -63,6 +63,20 @@ export default function HomePage() {
           const attemptsData = await attemptsRes.json().catch(() => null);
           recentAttempts = attemptsData?.attempts || [];
         }
+        try {
+          const local = JSON.parse(
+            localStorage.getItem('readrecall_user_attempts') || '[]'
+          );
+          const ids = new Set(recentAttempts.map((a) => a.id));
+          for (const item of local) {
+            if (item.id && !ids.has(item.id)) {
+              recentAttempts.push(item);
+              ids.add(item.id);
+            }
+          }
+        } catch {
+          // ignore
+        }
 
         if (!isCancelled && loadedArticles.length > 0) {
           const rec = pickRecommendedArticle(loadedArticles, recentAttempts);

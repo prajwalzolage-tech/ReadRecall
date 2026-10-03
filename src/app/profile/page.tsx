@@ -51,7 +51,28 @@ export default function ProfilePage() {
 
         if (attemptsRes.ok) {
           const data = await attemptsRes.json();
-          setAttempts(data.attempts || []);
+          let allAttempts: Attempt[] = data.attempts || [];
+          try {
+            const local = JSON.parse(
+              localStorage.getItem('readrecall_user_attempts') || '[]'
+            );
+            const ids = new Set(allAttempts.map((a) => a.id));
+            for (const item of local) {
+              if (item.id && !ids.has(item.id)) {
+                allAttempts.push(item);
+                ids.add(item.id);
+              }
+            }
+          } catch {
+            // ignore
+          }
+          // Sort by createdAt descending
+          allAttempts.sort(
+            (a, b) =>
+              new Date(b.createdAt || 0).getTime() -
+              new Date(a.createdAt || 0).getTime()
+          );
+          setAttempts(allAttempts);
         }
 
         if (profileRes.ok) {

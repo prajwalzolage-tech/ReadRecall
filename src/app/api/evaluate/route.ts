@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
     // 8. Return response
     return NextResponse.json({
       attemptId: savedAttempt.id,
+      attempt: savedAttempt,
       rating: ratingResult.rating,
       rawScore: ratingResult.rawScore,
       dimensionScores: ratingResult.dimensionScores,

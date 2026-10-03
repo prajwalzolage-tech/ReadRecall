@@ -95,6 +95,34 @@ export default function WritePage({ params }: PageProps) {
       }
 
       const data = await res.json();
+      const attemptObj = data.attempt || {
+        id: data.attemptId,
+        userId: user?.uid,
+        articleId,
+        summary,
+        rating: data.rating,
+        rawScore: data.rawScore,
+        dimensionScores: data.dimensionScores,
+        guards: data.guards,
+        flags: data.flags,
+        jevModel: data.jevModel,
+        latency: data.latency,
+        jevResults: data.jevResults,
+        createdAt: new Date().toISOString(),
+        section: sectionTitle,
+        retryOf,
+      };
+
+      try {
+        sessionStorage.setItem(`readrecall_attempt_${data.attemptId}`, JSON.stringify(attemptObj));
+        sessionStorage.setItem('readrecall_current_attempt', JSON.stringify(attemptObj));
+        const stored = JSON.parse(localStorage.getItem('readrecall_user_attempts') || '[]');
+        const updated = [attemptObj, ...stored.filter((a: any) => a.id !== data.attemptId)];
+        localStorage.setItem('readrecall_user_attempts', JSON.stringify(updated.slice(0, 50)));
+      } catch {
+        // ignore quota errors
+      }
+
       router.push(`/results/${data.attemptId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Evaluation failed');
