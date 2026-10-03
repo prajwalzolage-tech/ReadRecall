@@ -35,34 +35,48 @@ export default function ReadPage({ params }: PageProps) {
     }
   }, [loading, user, router]);
 
-  // Fetch article
-  useEffect(() => {
-    if (!idToken || !articleId) return;
+  const [isNavigating, setIsNavigating] = useState(false);
 
+  // Fetch article immediately
+  useEffect(() => {
+    if (!articleId) return;
+
+    let isCancelled = false;
     const fetchArticle = async () => {
       setFetching(true);
+      setError(null);
       try {
-        const res = await fetch(`/api/articles/${articleId}`, {
-          headers: { Authorization: `Bearer ${idToken}` },
-        });
+        const headers: Record<string, string> = {};
+        if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+        const res = await fetch(`/api/articles/${articleId}`, { headers });
         if (!res.ok) {
           throw new Error('Failed to load article');
         }
         const data = await res.json();
-        setArticle(data);
+        if (!isCancelled) {
+          setArticle(data);
 
-        if (sectionTitle && data.sections) {
-          const matched = data.sections.find((s: Section) => s.title === sectionTitle);
-          if (matched) setActiveSection(matched);
+          if (sectionTitle && data.sections) {
+            const matched = data.sections.find((s: Section) => s.title === sectionTitle);
+            if (matched) setActiveSection(matched);
+          }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error fetching article');
+        if (!isCancelled) {
+          setError(err instanceof Error ? err.message : 'Error fetching article');
+        }
       } finally {
-        setFetching(false);
+        if (!isCancelled) {
+          setFetching(false);
+        }
       }
     };
 
     fetchArticle();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [idToken, articleId, sectionTitle]);
 
   const targetWordCount = activeSection ? activeSection.wordCount : article?.wordCount ?? 300;
@@ -72,6 +86,7 @@ export default function ReadPage({ params }: PageProps) {
   );
 
   const handleFinishReading = useCallback(() => {
+    setIsNavigating(true);
     // Navigate to write page. DO NOT store article text anywhere.
     const query = sectionTitle ? `?section=${encodeURIComponent(sectionTitle)}` : '';
     router.push(`/write/${articleId}${query}`);
@@ -118,6 +133,16 @@ export default function ReadPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 select-none">
+      {/* Expiry / completion transition overlay */}
+      {isNavigating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-xs">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl text-center">
+            <div className="h-7 w-7 animate-spin rounded-full border-3 border-slate-900 border-t-transparent" />
+            <p className="text-base font-semibold text-slate-900">Time is up! Opening summary page...</p>
+            <p className="text-xs text-slate-500">Prepare to summarize key concepts from memory.</p>
+          </div>
+        </div>
+      )}
       {/* Top sticky bar with timer */}
       <div className="sticky top-20 z-20 mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white/90 p-4 backdrop-blur-md shadow-sm">
         <div className="flex items-center gap-3">
