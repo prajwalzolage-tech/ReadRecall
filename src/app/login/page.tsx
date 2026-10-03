@@ -36,6 +36,21 @@ export default function LoginPage() {
     return null;
   }
 
+  const formatAuthError = (err: any) => {
+    if (
+      err?.code === 'auth/unauthorized-domain' ||
+      err?.message?.includes('unauthorized-domain')
+    ) {
+      const hostname =
+        typeof window !== 'undefined' ? window.location.hostname : 'read-recall.vercel.app';
+      return `Domain "${hostname}" is not authorized in Firebase. Add "${hostname}" in Firebase Console under Authentication > Settings > Authorized domains.`;
+    }
+    if (err?.code === 'auth/popup-closed-by-user') {
+      return 'Sign-in popup was closed before completing.';
+    }
+    return err instanceof Error ? err.message : 'Authentication failed';
+  };
+
   const handleGoogleSignIn = async () => {
     setError(null);
     setSubmitting(true);
@@ -44,7 +59,7 @@ export default function LoginPage() {
       await signInWithPopup(auth, provider);
       router.push('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google sign-in failed');
+      setError(formatAuthError(err));
     } finally {
       setSubmitting(false);
     }
@@ -62,7 +77,7 @@ export default function LoginPage() {
       }
       router.push('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Authentication failed');
+      setError(formatAuthError(err));
     } finally {
       setSubmitting(false);
     }
