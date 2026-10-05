@@ -10,8 +10,19 @@ const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE
 const groqApiKey = process.env.GROQ_API_KEY;
 const gatewayApiKey = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_AI_GATEWAY_KEY;
 const openaiApiKey = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY;
+const openrouterApiKey = process.env.OPENROUTER_API_KEY;
 
 function getLanguageModel() {
+  // 0. OpenRouter
+  if (openrouterApiKey) {
+    const openrouter = createOpenAI({
+      apiKey: openrouterApiKey,
+      baseURL: 'https://openrouter.ai/api/v1',
+    });
+    const model = process.env.OPENROUTER_MODEL || process.env.LLM_MODEL || 'typesafe/jev-system-1';
+    return openrouter(model);
+  }
+
   // 1. Google Gemini (Fast, high context, free tier supported)
   if (geminiApiKey) {
     const google = createGoogleGenerativeAI({ apiKey: geminiApiKey });

@@ -202,6 +202,16 @@ export class FreeAIJevProvider implements JevProvider {
   name = 'free-ai-jev';
 
   private getModel() {
+    const openrouterKey = process.env.OPENROUTER_API_KEY;
+    if (openrouterKey) {
+      const openrouter = createOpenAI({
+        apiKey: openrouterKey,
+        baseURL: 'https://openrouter.ai/api/v1',
+      });
+      const modelName = process.env.OPENROUTER_MODEL || 'typesafe/jev-system-1';
+      return { model: openrouter(modelName), name: modelName };
+    }
+
     const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (geminiKey) {
       const google = createGoogleGenerativeAI({ apiKey: geminiKey });
@@ -402,8 +412,9 @@ export function getJevProvider(): JevProvider {
     return new TypeSafeJevProvider();
   }
 
-  // Free AI Jev Engine (Gemini / Groq / Vercel AI Gateway)
+  // Free AI Jev Engine (OpenRouter / Gemini / Groq / Vercel AI Gateway)
   if (
+    process.env.OPENROUTER_API_KEY ||
     process.env.GEMINI_API_KEY ||
     process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
     process.env.GROQ_API_KEY ||
