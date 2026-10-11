@@ -97,11 +97,12 @@ export default function WritePage({ params }: PageProps) {
       }
 
       const data = await res.json();
-      const attemptObj = data.attempt || {
-        id: data.attemptId,
+      const attemptObj = {
+        ...(data.attempt || {}),
+        id: data.attemptId || data.attempt?.id,
         userId: user?.uid,
         articleId,
-        summary,
+        summary: data.attempt?.summary || summary,
         rating: data.rating,
         rawScore: data.rawScore,
         dimensionScores: data.dimensionScores,
@@ -110,7 +111,7 @@ export default function WritePage({ params }: PageProps) {
         jevModel: data.jevModel,
         latency: data.latency,
         jevResults: data.jevResults,
-        createdAt: new Date().toISOString(),
+        createdAt: data.attempt?.createdAt || new Date().toISOString(),
         section: sectionTitle,
         retryOf,
       };

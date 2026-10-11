@@ -16,9 +16,28 @@ export default function HomePage() {
   const { user, loading, idToken } = useAuth();
   const router = useRouter();
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
+  const [filterTab, setFilterTab] = useState<'all' | 'curated' | 'uploads'>('all');
+  const [deletedNotification, setDeletedNotification] = useState<string | null>(null);
   const [recommendation, setRecommendation] = useState<RecommendationResult | null>(null);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleDeleteArticle = (deletedId: string) => {
+    setArticles((prev) => prev.filter((a) => a.id !== deletedId));
+    setDeletedNotification('Document deleted successfully.');
+    setTimeout(() => {
+      setDeletedNotification(null);
+    }, 3500);
+  };
+
+  const curatedCount = articles.filter((a) => a.source === 'curated').length;
+  const uploadCount = articles.filter((a) => a.source !== 'curated').length;
+
+  const displayedArticles = articles.filter((a) => {
+    if (filterTab === 'curated') return a.source === 'curated';
+    if (filterTab === 'uploads') return a.source !== 'curated';
+    return true;
+  });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -200,22 +219,98 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Articles grid */}
+      {/* Delete Feedback Notification */}
+      {deletedNotification && (
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-800 animate-in fade-in slide-in-from-top-2">
+          <span>{deletedNotification}</span>
+          <button
+            onClick={() => setDeletedNotification(null)}
+            className="text-emerald-700 hover:text-emerald-900"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Articles Filter Tabs & Grid */}
       {!fetching && articles.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Curated Library ({articles.length})
-            </h3>
+        <div className="space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setFilterTab('all')}
+                className={`rounded-lg px-3.5 py-1.5 font-semibold transition ${
+                  filterTab === 'all'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                All Papers ({articles.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFilterTab('curated')}
+                className={`rounded-lg px-3.5 py-1.5 font-semibold transition ${
+                  filterTab === 'curated'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Curated ({curatedCount})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFilterTab('uploads')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 font-semibold transition ${
+                  filterTab === 'uploads'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>My Uploads</span>
+                <span className="rounded-full bg-indigo-50 border border-indigo-100 px-1.5 py-0.2 text-[10px] text-indigo-700 font-bold">
+                  {uploadCount}
+                </span>
+              </button>
+            </div>
+
             <span className="text-xs text-slate-500">
               Select any paper to begin timed reading
             </span>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {articles.map((article) => (
-              <ArticleCard key={article.id} article={article} />
-            ))}
-          </div>
+
+          {displayedArticles.length > 0 ? (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {displayedArticles.map((article) => (
+                <ArticleCard
+                  key={article.id}
+                  article={article}
+                  currentUserId={user?.uid}
+                  idToken={idToken || undefined}
+                  onDelete={handleDeleteArticle}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-16 text-center">
+              <Upload className="h-8 w-8 text-slate-300 mb-2" />
+              <p className="text-sm font-semibold text-slate-700">No uploaded documents yet</p>
+              <p className="mt-1 text-xs text-slate-500 max-w-sm">
+                Upload your own technical papers, PDFs, or research notes to practice active recall.
+              </p>
+              <Link
+                href="/upload"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                <span>Upload a Document</span>
+              </Link>
+            </div>
+          )}
         </div>
       )}
 

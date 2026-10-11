@@ -1,10 +1,10 @@
 // src/components/reveal-view.tsx
-// Reveal view: highlights missed key points and enables revise & resubmit
+// Reveal view: highlights missed key points and enables revise & resubmit with comparative recall analysis
 
 'use client';
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, RotateCcw, CheckCircle2, XCircle } from 'lucide-react';
+import { Eye, EyeOff, RotateCcw, CheckCircle2, XCircle, FileText, BookOpen } from 'lucide-react';
 import { DocumentReader } from '@/components/document-reader';
 import type { KeyPoint } from '@/types';
 
@@ -13,6 +13,7 @@ interface RevealViewProps {
   articleText: string;
   keyPoints: KeyPoint[];
   jevResults?: Record<string, any>;
+  userSummary?: string;
   onRetry: () => void;
 }
 
@@ -21,9 +22,11 @@ export function RevealView({
   articleText,
   keyPoints,
   jevResults = {},
+  userSummary,
   onRetry,
 }: RevealViewProps) {
   const [isRevealed, setIsRevealed] = useState(false);
+  const [compareMode, setCompareMode] = useState<'split' | 'source-only'>('split');
 
   // Identify which key points were missed based on jevResults
   const pointStatuses = keyPoints.map((kp, idx) => {
@@ -108,23 +111,94 @@ export function RevealView({
         </div>
       </div>
 
-      {/* Revealed Source Article Text */}
+      {/* Revealed Source Article Text & Side-by-Side Comparison */}
       {isRevealed && (
         <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50/70 p-6 sm:p-8">
-          <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3">
-            <h4 className="font-sans text-base font-bold text-slate-900">
-              {articleTitle}
-            </h4>
-            <span className="text-[11px] font-semibold text-amber-800 bg-amber-100/70 border border-amber-200 rounded-md px-2.5 py-0.5">
-              Source Text Reference
-            </span>
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-sans text-base font-bold text-slate-900">
+                  {articleTitle}
+                </h4>
+                <span className="text-[11px] font-semibold text-amber-800 bg-amber-100/70 border border-amber-200 rounded-md px-2.5 py-0.5">
+                  Source Text Reference
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Cross-examine your recall synthesis against the ground-truth text
+              </p>
+            </div>
+
+            {userSummary ? (
+              <div className="flex items-center rounded-xl border border-slate-200 bg-white p-1 text-xs shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setCompareMode('split')}
+                  className={`rounded-lg px-3 py-1 font-semibold transition ${
+                    compareMode === 'split'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Side-by-Side Comparison
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCompareMode('source-only')}
+                  className={`rounded-lg px-3 py-1 font-semibold transition ${
+                    compareMode === 'source-only'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Source Document Only
+                </button>
+              </div>
+            ) : null}
           </div>
 
-          <div className="pt-2">
-            <DocumentReader content={articleText} title={articleTitle} />
-          </div>
+          {compareMode === 'split' && userSummary ? (
+            <div className="grid gap-6 lg:grid-cols-2 pt-2">
+              {/* Left Column: Your Recall Summary */}
+              <div className="flex flex-col rounded-xl border border-indigo-200/90 bg-white p-5 shadow-sm">
+                <div className="mb-3 flex items-center justify-between border-b border-indigo-50 pb-2.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5 text-indigo-600" />
+                    Your Recall Summary
+                  </span>
+                  <span className="text-[10px] font-mono font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                    What You Wrote
+                  </span>
+                </div>
+                <div className="whitespace-pre-wrap font-sans text-sm text-slate-800 leading-relaxed max-h-[550px] overflow-y-auto pr-2 selection:bg-indigo-100">
+                  {userSummary}
+                </div>
+              </div>
+
+              {/* Right Column: Source Document */}
+              <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-2.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                    <BookOpen className="h-3.5 w-3.5 text-slate-600" />
+                    Source Article Reference
+                  </span>
+                  <span className="text-[10px] font-mono font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                    Ground Truth
+                  </span>
+                </div>
+                <div className="max-h-[550px] overflow-y-auto pr-1">
+                  <DocumentReader content={articleText} title={articleTitle} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="pt-2">
+              <DocumentReader content={articleText} title={articleTitle} />
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
+

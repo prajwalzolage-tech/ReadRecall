@@ -18,6 +18,9 @@ import {
   ArrowLeft,
   Layers,
   Sparkles,
+  Trash2,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import type { Article, Section } from '@/types';
 
@@ -48,6 +51,38 @@ export default function ReadPage({ params }: PageProps) {
   const [isNavigating, setIsNavigating] = useState(false);
 
   const [readingDuration, setReadingDuration] = useState(105);
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const isOwner = Boolean(
+    article &&
+      article.source !== 'curated' &&
+      (article.createdBy === user?.uid || !article.createdBy || article.createdBy === 'user')
+  );
+
+  const handleDeleteArticle = async () => {
+    if (!articleId) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const headers: Record<string, string> = {};
+      if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+      const res = await fetch(`/api/articles/${articleId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to delete article');
+      }
+      router.push('/');
+    } catch (err: any) {
+      setDeleteError(err.message || 'Error deleting article');
+      setIsDeleting(false);
+    }
+  };
 
   // Authentication check
   useEffect(() => {
@@ -224,13 +259,27 @@ export default function ReadPage({ params }: PageProps) {
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 space-y-8">
         {/* Navigation / Header */}
         <div className="pb-6 border-b border-slate-200/80">
-          <button
-            onClick={() => router.push('/')}
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition mb-4"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Back to Curated Library</span>
-          </button>
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => router.push('/')}
+              className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back to Library</span>
+            </button>
+
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition"
+                title="Delete this custom document"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Delete Document</span>
+              </button>
+            )}
+          </div>
 
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-600">
             <Layers className="h-4 w-4" />
@@ -280,6 +329,55 @@ export default function ReadPage({ params }: PageProps) {
             </button>
           </div>
         </div>
+
+        {/* Delete Confirmation Modal for Multi-part Screen */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+            <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center gap-2.5 text-rose-600 font-bold text-base">
+                <AlertTriangle className="h-5 w-5" />
+                <span>Delete Document</span>
+              </div>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Are you sure you want to permanently delete <strong className="text-slate-900">&ldquo;{article.title}&rdquo;</strong>? You will no longer be able to practice active recall on this material.
+              </p>
+              {deleteError && (
+                <p className="text-xs text-rose-600 font-semibold">{deleteError}</p>
+              )}
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setDeleteError(null);
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={handleDeleteArticle}
+                  className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-rose-700 transition"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Delete Document</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -295,6 +393,55 @@ export default function ReadPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 select-none">
+      {/* Delete Confirmation Modal for Active Reading Screen */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-2.5 text-rose-600 font-bold text-base">
+              <AlertTriangle className="h-5 w-5" />
+              <span>Delete Document</span>
+            </div>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Are you sure you want to permanently delete <strong className="text-slate-900">&ldquo;{article.title}&rdquo;</strong>? You will no longer be able to practice active recall on this material.
+            </p>
+            {deleteError && (
+              <p className="text-xs text-rose-600 font-semibold">{deleteError}</p>
+            )}
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteError(null);
+                }}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteArticle}
+                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-rose-700 transition"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Delete Document</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Expiry / completion transition overlay */}
       {isNavigating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-xs">
@@ -365,15 +512,28 @@ export default function ReadPage({ params }: PageProps) {
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl font-sans">
               {article.title}
             </h1>
-            {article.sections && article.sections.length > 1 && (
-              <button
-                onClick={handleBackToSectionPicker}
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition font-sans"
-              >
-                <Layers className="h-3.5 w-3.5 text-indigo-600" />
-                <span>All Parts</span>
-              </button>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition font-sans"
+                  title="Delete this custom document"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Delete</span>
+                </button>
+              )}
+              {article.sections && article.sections.length > 1 && (
+                <button
+                  onClick={handleBackToSectionPicker}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition font-sans"
+                >
+                  <Layers className="h-3.5 w-3.5 text-indigo-600" />
+                  <span>All Parts</span>
+                </button>
+              )}
+            </div>
           </div>
           {activeSection && (
             <div className="mt-2 inline-flex items-center gap-2 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200/60 font-sans">

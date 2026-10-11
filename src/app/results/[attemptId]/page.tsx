@@ -7,6 +7,7 @@ import React, { useEffect, useState, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
 import { RatingDisplay } from '@/components/rating-display';
+import { UserSummaryCard } from '@/components/user-summary-card';
 import { FeedbackStream } from '@/components/feedback-stream';
 import { RevealView } from '@/components/reveal-view';
 import { computeDelta } from '@/lib/rating';
@@ -109,9 +110,35 @@ export default function ResultsPage({ params }: PageProps) {
           throw new Error('Attempt not found. Please try evaluating again.');
         }
 
+        // 3. Fallback: ensure summary is preserved from local storage if server response lacked it
+        if (!attemptData.summary) {
+          try {
+            const cached =
+              sessionStorage.getItem(`readrecall_attempt_${attemptId}`) ||
+              sessionStorage.getItem('readrecall_current_attempt');
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (parsed.id === attemptId && parsed.summary) {
+                attemptData.summary = parsed.summary;
+              }
+            }
+            if (!attemptData.summary) {
+              const all = JSON.parse(
+                localStorage.getItem('readrecall_user_attempts') || '[]'
+              );
+              const found = all.find((a: any) => a.id === attemptId);
+              if (found?.summary) {
+                attemptData.summary = found.summary;
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+
         setAttempt(attemptData);
 
-        // 3. Re-sync to server in background (fire and forget)
+        // 4. Re-sync to server in background (fire and forget)
         if (idToken) {
           fetch('/api/attempts', {
             method: 'POST',
@@ -123,7 +150,7 @@ export default function ResultsPage({ params }: PageProps) {
           }).catch(() => null);
         }
 
-        // 4. Fetch article for reveal view
+        // 5. Fetch article for reveal view
         try {
           const articleHeaders: Record<string, string> = {};
           if (idToken) articleHeaders['Authorization'] = `Bearer ${idToken}`;
@@ -138,7 +165,7 @@ export default function ResultsPage({ params }: PageProps) {
           // Article fetch is non-critical for results display
         }
 
-        // 5. If retry, fetch original attempt for improvement delta
+        // 6. If retry, fetch original attempt for improvement delta
         if (attemptData.retryOf) {
           try {
             let origData: Attempt | null = null;
@@ -269,7 +296,14 @@ export default function ResultsPage({ params }: PageProps) {
         flags={safeAttempt.flags}
       />
 
-      {/* 2. Streamed AI Tutor Coaching Feedback */}
+      {/* 2. Your Submitted Recall Summary */}
+      <UserSummaryCard
+        summary={safeAttempt.summary}
+        section={safeAttempt.section}
+        isRevision={Boolean(safeAttempt.retryOf)}
+      />
+
+      {/* 3. Streamed AI Tutor Coaching Feedback */}
       {idToken && (
         <FeedbackStream
           articleId={safeAttempt.articleId}
@@ -280,13 +314,14 @@ export default function ResultsPage({ params }: PageProps) {
         />
       )}
 
-      {/* 3. Reveal View & Revise Option */}
+      {/* 4. Reveal View & Revise Option */}
       {article && (
         <RevealView
           articleTitle={article.title}
           articleText={article.text}
           keyPoints={article.keyPoints}
           jevResults={(safeAttempt as any).jevResults}
+          userSummary={safeAttempt.summary}
           onRetry={() => router.push(`/write/${article.id}?retry=${attempt.id}`)}
         />
       )}

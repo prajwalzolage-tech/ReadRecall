@@ -4,7 +4,7 @@
 // and gracefully falls back to curated articles & in-memory persistence.
 
 import app from '@/lib/firebase/client';
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, query, where, limit } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, query, where, limit } from 'firebase/firestore';
 
 const db = getFirestore(app);
 
@@ -389,30 +389,62 @@ export async function saveArticle(
 }
 
 /**
+ * Delete an article (only user-uploaded/custom articles can be deleted, not curated)
+ */
+export async function deleteArticle(id: string, userId: string): Promise<boolean> {
+  const article = await getArticleById(id);
+  if (!article) return false;
+
+  // Protect curated system articles
+  if (article.source === 'curated') {
+    throw new Error('Cannot delete curated system articles');
+  }
+
+  // Authorize: creator can delete, or allow if createdBy was anonymous
+  if (article.createdBy && article.createdBy !== 'user' && article.createdBy !== userId) {
+    throw new Error('Unauthorized to delete this article');
+  }
+
+  // Remove from memory
+  memoryArticles.delete(id);
+
+  // Clean up associated attempts from memory store
+  for (const [attId, att] of memoryAttempts.entries()) {
+    if (att.articleId === id) {
+      memoryAttempts.delete(attId);
+    }
+  }
+
+  saveLocalData();
+
+  if (isFirestoreConfigured()) {
+    try {
+      await deleteDoc(doc(db, 'articles', id));
+    } catch (err) {
+      console.warn(
+        `[DataStore] Firestore article deletion for ${id} failed:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+
+  return true;
+}
+
+/**
  * Save an evaluation attempt
  */
 export async function saveAttempt(
   attemptData: Omit<Attempt, 'id'> & { id?: string }
 ): Promise<Attempt> {
-  const id =
+  let id =
     attemptData.id ||
     `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-  const fullAttempt: Attempt = {
-    ...attemptData,
-    id,
-    createdAt: attemptData.createdAt || new Date().toISOString(),
-  };
-
-  // Cache in memory
-  memoryAttempts.set(id, fullAttempt);
-  saveLocalData();
 
   if (isFirestoreConfigured()) {
     try {
       const docRef = await addDoc(collection(db, 'attempts'), attemptData);
-      fullAttempt.id = docRef.id;
-      memoryAttempts.set(docRef.id, fullAttempt);
+      id = docRef.id;
     } catch (err) {
       console.warn(
         '[DataStore] Could not persist attempt to Firestore:',
@@ -420,6 +452,16 @@ export async function saveAttempt(
       );
     }
   }
+
+  const fullAttempt: Attempt = {
+    ...attemptData,
+    id,
+    createdAt: attemptData.createdAt || new Date().toISOString(),
+  };
+
+  // Cache in memory with unique id
+  memoryAttempts.set(id, fullAttempt);
+  saveLocalData();
 
   return fullAttempt;
 }
@@ -459,6 +501,9 @@ export async function getAttemptsByUserId(
   userId: string,
   articleId?: string | null
 ): Promise<Attempt[]> {
+  const seenIds = new Set<string>();
+  const dedupedAttempts: Attempt[] = [];
+
   if (isFirestoreConfigured()) {
     try {
       let q = query(collection(db, 'attempts'), where('userId', '==', userId));
@@ -469,17 +514,19 @@ export async function getAttemptsByUserId(
 
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
-        const attempts = snapshot.docs.map(
-          (document: any) => ({ id: document.id, ...document.data() } as Attempt)
-        );
-        attempts.sort(
+        for (const document of snapshot.docs) {
+          const item = { id: document.id, ...document.data() } as Attempt;
+          if (item.id && !seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            dedupedAttempts.push(item);
+            memoryAttempts.set(item.id, item);
+          }
+        }
+        dedupedAttempts.sort(
           (a: Attempt, b: Attempt) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
-        for (const att of attempts) {
-          memoryAttempts.set(att.id, att);
-        }
-        return attempts;
+        return dedupedAttempts;
       }
     } catch (err) {
       console.warn(
@@ -490,20 +537,23 @@ export async function getAttemptsByUserId(
   }
 
   // Fallback to memory
-  let userAttempts = Array.from(memoryAttempts.values()).filter(
-    (a) => a.userId === userId
-  );
-
-  if (articleId) {
-    userAttempts = userAttempts.filter((a) => a.articleId === articleId);
+  for (const a of memoryAttempts.values()) {
+    if (a.userId === userId) {
+      if (!articleId || a.articleId === articleId) {
+        if (a.id && !seenIds.has(a.id)) {
+          seenIds.add(a.id);
+          dedupedAttempts.push(a);
+        }
+      }
+    }
   }
 
-  userAttempts.sort(
+  dedupedAttempts.sort(
     (a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  return userAttempts;
+  return dedupedAttempts;
 }
 
 /**

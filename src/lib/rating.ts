@@ -15,9 +15,9 @@ export interface JevOutputItem {
 export type JevEvaluationOutput = Record<string, JevOutputItem | any>;
 
 /**
- * Check if the summary is gibberish or spam (e.g. repeated words, < 3 unique words).
+ * Check if the summary is gibberish, spam, or random keyboard mash.
  */
-export function isGibberish(summary: string): boolean {
+export function isGibberish(summary: string, article?: string): boolean {
   const tokens = tokenizeWords(summary);
   if (tokens.length < 3) return true;
 
@@ -25,6 +25,36 @@ export function isGibberish(summary: string): boolean {
   // If fewer than 3 unique words or extremely repetitive ratio
   if (unique.size < 3) return true;
   if (tokens.length >= 8 && unique.size / tokens.length < 0.25) return true;
+
+  // Check vowel-less / unpronounceable random tokens (e.g. "hfhhd", "dfgj", "xcv", "bx")
+  const vowelPattern = /[aeiouy]/i;
+  const wordsWithVowels = tokens.filter((w) => vowelPattern.test(w)).length;
+  if (wordsWithVowels / tokens.length < 0.65) return true;
+
+  // Common high-frequency English functional & academic words
+  const commonWords = new Set([
+    'the','be','to','of','and','a','in','that','have','i','it','for','not','on','with',
+    'he','as','you','do','at','this','but','his','by','from','they','we','say','her',
+    'she','or','an','will','my','one','all','would','there','their','what','so','up',
+    'out','if','about','who','get','which','go','me','when','make','can','like','time',
+    'no','just','him','know','take','people','into','year','your','good','some','could',
+    'them','see','other','than','then','now','look','only','come','its','over','think',
+    'also','back','after','use','two','how','our','work','first','well','way','even',
+    'new','want','because','any','these','give','day','most','us','is','are','was','were',
+    'has','had','been','paper','article','author','system','data','study','results','model'
+  ]);
+  const englishWordCount = tokens.filter((w) => commonWords.has(w.toLowerCase())).length;
+
+  let articleOverlapCount = 0;
+  if (article) {
+    const articleTokens = new Set(tokenizeWords(article));
+    articleOverlapCount = tokens.filter((w) => articleTokens.has(w)).length;
+  }
+
+  // If text is 6+ words and has virtually zero recognizable English or article vocabulary (< 15%)
+  if (tokens.length >= 6 && (englishWordCount + articleOverlapCount) / tokens.length < 0.15) {
+    return true;
+  }
 
   return false;
 }
@@ -130,12 +160,19 @@ export function calculateRating(
   const injectionProb = extractScoreValue(jevResults.injection, 0).score;
   const injectionGuard = injectionProb >= thresholds.injectionThreshold;
 
-  const gibberish = isGibberish(summary);
+  const gibberish = isGibberish(summary, article);
 
   // 6. Apply guard caps (in priority order)
   if (injectionGuard) {
     rating = 1;
-  } else if (wordCountGuard || gibberish) {
+  } else if (gibberish) {
+    rating = 1;
+    dimensionScores.coverage = 0;
+    dimensionScores.mainIdea = 0;
+    dimensionScores.faithfulness = 0;
+    dimensionScores.clarity = 0;
+    dimensionScores.appliedPurpose = 0;
+  } else if (wordCountGuard) {
     rating = 1;
   } else {
     if (offTopicGuard) {
@@ -160,7 +197,9 @@ export function calculateRating(
 
   // Primary gap extraction
   let primaryGap = 'None';
-  if (jevResults.primary_gap) {
+  if (gibberish) {
+    primaryGap = 'Gibberish or random non-semantic text entered';
+  } else if (jevResults.primary_gap) {
     primaryGap =
       typeof jevResults.primary_gap === 'string'
         ? jevResults.primary_gap

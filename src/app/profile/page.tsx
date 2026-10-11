@@ -16,14 +16,19 @@ import {
   BookOpen,
   Calendar,
   ArrowRight,
+  Trash2,
+  Upload,
+  FileText,
 } from 'lucide-react';
-import type { Attempt, DimensionScores } from '@/types';
+import type { Attempt, DimensionScores, ArticleListItem } from '@/types';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, loading, idToken } = useAuth();
 
   const [attempts, setAttempts] = useState<Attempt[]>([]);
+  const [myUploads, setMyUploads] = useState<ArticleListItem[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [privacySummary, setPrivacySummary] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -40,32 +45,53 @@ export default function ProfilePage() {
     const loadProfileData = async () => {
       setFetching(true);
       try {
-        const [attemptsRes, profileRes] = await Promise.all([
+        const [attemptsRes, profileRes, articlesRes] = await Promise.all([
           fetch('/api/attempts', {
             headers: { Authorization: `Bearer ${idToken}` },
           }),
           fetch('/api/user/profile', {
             headers: { Authorization: `Bearer ${idToken}` },
           }),
+          fetch('/api/articles', {
+            headers: { Authorization: `Bearer ${idToken}` },
+          }),
         ]);
+
+        if (articlesRes.ok) {
+          const articlesData = await articlesRes.json();
+          const rawUploads = (articlesData.articles || []).filter(
+            (a: ArticleListItem) => a.source !== 'curated'
+          );
+          const dedupedUploadsMap = new Map<string, ArticleListItem>();
+          for (const art of rawUploads) {
+            if (art.id) dedupedUploadsMap.set(art.id, art);
+          }
+          setMyUploads(Array.from(dedupedUploadsMap.values()));
+        }
 
         if (attemptsRes.ok) {
           const data = await attemptsRes.json();
-          const allAttempts: Attempt[] = data.attempts || [];
+          const rawAttempts: Attempt[] = data.attempts || [];
+          const dedupedMap = new Map<string, Attempt>();
+
+          for (const a of rawAttempts) {
+            if (a.id) dedupedMap.set(a.id, a);
+          }
+
           try {
             const local = JSON.parse(
               localStorage.getItem('readrecall_user_attempts') || '[]'
             );
-            const ids = new Set(allAttempts.map((a) => a.id));
             for (const item of local) {
-              if (item.id && !ids.has(item.id) && item.userId === user?.uid) {
-                allAttempts.push(item);
-                ids.add(item.id);
+              if (item.id && !dedupedMap.has(item.id) && item.userId === user?.uid) {
+                dedupedMap.set(item.id, item);
               }
             }
           } catch {
             // ignore
           }
+
+          const allAttempts = Array.from(dedupedMap.values());
           // Sort by createdAt descending
           allAttempts.sort(
             (a, b) =>
@@ -106,6 +132,24 @@ export default function ProfilePage() {
       console.error('Failed to update privacy setting:', err);
     } finally {
       setSavingPrivacy(false);
+    }
+  };
+
+  const handleDeleteUpload = async (articleId: string) => {
+    if (!idToken) return;
+    setDeletingId(articleId);
+    try {
+      const res = await fetch(`/api/articles/${articleId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      if (res.ok) {
+        setMyUploads((prev) => prev.filter((a) => a.id !== articleId));
+      }
+    } catch (err) {
+      console.error('Failed to delete upload:', err);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -258,6 +302,89 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* User's Uploaded Documents Section */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-slate-100">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <Upload className="h-4 w-4 text-indigo-600" />
+              <span>My Uploaded Documents ({myUploads.length})</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Custom papers, PDFs, or articles you uploaded for active recall
+            </p>
+          </div>
+
+          <button
+            onClick={() => router.push('/upload')}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition self-start sm:self-auto"
+          >
+            <Upload className="h-3.5 w-3.5 text-slate-500" />
+            <span>Upload New</span>
+          </button>
+        </div>
+
+        {myUploads.length === 0 ? (
+          <p className="text-xs text-slate-500 py-6 text-center">
+            No uploaded documents yet. Use the upload page to bring your own materials.
+          </p>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {myUploads.map((art, index) => (
+              <div
+                key={art.id ? `${art.id}-${index}` : `upload-${index}`}
+                className="flex items-center justify-between py-3.5 px-3 hover:bg-slate-50 rounded-xl transition"
+              >
+                <div className="flex items-center gap-3 min-w-0 pr-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-slate-900 truncate">
+                      {art.title}
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                      <span className="capitalize">{art.source}</span>
+                      <span>•</span>
+                      <span>{art.wordCount} words</span>
+                      {art.sectionCount && art.sectionCount > 1 && (
+                        <>
+                          <span>•</span>
+                          <span className="text-indigo-600 font-medium">{art.sectionCount} Parts</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => router.push(`/read/${art.id}`)}
+                    className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-slate-800 transition"
+                  >
+                    <span>Read</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </button>
+
+                  <button
+                    disabled={deletingId === art.id}
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to delete "${art.title}"?`)) {
+                        handleDeleteUpload(art.id);
+                      }
+                    }}
+                    className="rounded-lg p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                    title="Delete uploaded document"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Attempt History List */}
       <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm">
         <h2 className="text-base font-bold text-slate-900 tracking-tight mb-4">Attempt History</h2>
@@ -267,7 +394,7 @@ export default function ProfilePage() {
           </p>
         ) : (
           <div className="divide-y divide-slate-100">
-            {attempts.map((att) => {
+            {attempts.map((att, index) => {
               const formattedDate = new Date(att.createdAt).toLocaleDateString(undefined, {
                 month: 'short',
                 day: 'numeric',
@@ -277,7 +404,7 @@ export default function ProfilePage() {
 
               return (
                 <div
-                  key={att.id}
+                  key={att.id ? `${att.id}-${index}` : `attempt-${index}`}
                   onClick={() => router.push(`/results/${att.id}`)}
                   className="flex items-center justify-between py-3.5 px-3 hover:bg-slate-50 rounded-xl cursor-pointer transition"
                 >
@@ -300,6 +427,11 @@ export default function ProfilePage() {
                           <span className="ml-2 text-xs text-indigo-600 font-medium">({att.section})</span>
                         )}
                       </p>
+                      {att.summary && (
+                        <p className="text-xs text-slate-600 line-clamp-1 mt-0.5 italic max-w-md">
+                          &ldquo;{att.summary}&rdquo;
+                        </p>
+                      )}
                       <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5 font-medium">
                         <Calendar className="h-3 w-3 text-slate-400" />
                         {formattedDate}

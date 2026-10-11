@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyRequest } from '@/lib/auth-helper';
-import { getArticleById } from '@/lib/data-store';
+import { getArticleById, deleteArticle } from '@/lib/data-store';
 import { splitSections } from '@/lib/section-splitter';
 
 export const dynamic = 'force-dynamic';
@@ -64,6 +64,55 @@ export async function GET(
     console.error('Error fetching article:', error);
     return NextResponse.json(
       { error: 'Failed to fetch article' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const authResult = await verifyRequest(request);
+  if ('error' in authResult) return authResult.error;
+  const { user } = authResult;
+
+  try {
+    const { id } = await params;
+    const article = await getArticleById(id);
+
+    if (!article) {
+      return NextResponse.json(
+        { error: 'Article not found' },
+        { status: 404 }
+      );
+    }
+
+    if (article.source === 'curated') {
+      return NextResponse.json(
+        { error: 'Curated system articles cannot be deleted.' },
+        { status: 403 }
+      );
+    }
+
+    if (article.createdBy && article.createdBy !== 'user' && article.createdBy !== user.uid) {
+      return NextResponse.json(
+        { error: 'You are not authorized to delete this document.' },
+        { status: 403 }
+      );
+    }
+
+    await deleteArticle(id, user.uid);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Article deleted successfully',
+      id,
+    });
+  } catch (error: any) {
+    console.error('Error deleting article:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to delete article' },
       { status: 500 }
     );
   }
