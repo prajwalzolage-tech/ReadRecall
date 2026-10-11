@@ -1,15 +1,24 @@
 // src/app/read/[articleId]/page.tsx
-// Timed reading view: presents article with countdown timer, anti-copy guards, and hide transition
+// Timed reading view: supports multi-part section picker for long papers & timed reading session
 
 'use client';
 
-import React, { useEffect, useState, use, useCallback, useRef } from 'react';
+import React, { useEffect, useState, use, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
 import { ReadingTimer } from '@/components/reading-timer';
+import { SectionPicker } from '@/components/section-picker';
+import { DocumentReader } from '@/components/document-reader';
 import { useTimer } from '@/hooks/use-timer';
 import { WORDS_PER_MINUTE, TIMER_BUFFER_SECONDS } from '@/lib/constants';
-import { BookOpen, ShieldAlert, ArrowRight } from 'lucide-react';
+import {
+  BookOpen,
+  ShieldAlert,
+  ArrowRight,
+  ArrowLeft,
+  Layers,
+  Sparkles,
+} from 'lucide-react';
 import type { Article, Section } from '@/types';
 
 interface PageProps {
@@ -17,25 +26,28 @@ interface PageProps {
 }
 
 function computeReadingDuration(wordCount: number): number {
-  return Math.max(30, Math.ceil((wordCount / WORDS_PER_MINUTE) * 60) + TIMER_BUFFER_SECONDS);
+  return Math.max(
+    30,
+    Math.ceil((wordCount / WORDS_PER_MINUTE) * 60) + TIMER_BUFFER_SECONDS
+  );
 }
 
 export default function ReadPage({ params }: PageProps) {
   const { articleId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sectionTitle = searchParams.get('section');
+  const urlSectionTitle = searchParams.get('section');
 
   const { user, loading, idToken } = useAuth();
   const [article, setArticle] = useState<Article | null>(null);
   const [activeSection, setActiveSection] = useState<Section | null>(null);
+  const [selectedSectionTitle, setSelectedSectionTitle] = useState<string | null>(null);
+  const [isSelectingSection, setIsSelectingSection] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // Compute reading duration based on actual article data
-  // Use a stable value: only compute once when article loads
-  const [readingDuration, setReadingDuration] = useState(105); // default ~1:45 for 300 words
+  const [readingDuration, setReadingDuration] = useState(105);
 
   // Authentication check
   useEffect(() => {
@@ -53,7 +65,6 @@ export default function ReadPage({ params }: PageProps) {
       setFetching(true);
       setError(null);
       try {
-        // Don't require auth for reading articles (articles route is public)
         const headers: Record<string, string> = {};
         if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
         const res = await fetch(`/api/articles/${articleId}`, { headers });
@@ -64,19 +75,43 @@ export default function ReadPage({ params }: PageProps) {
         if (!isCancelled) {
           setArticle(data);
 
-          // Set reading duration once based on actual word count
-          let targetWords = data.wordCount ?? 300;
-          let matchedSection: Section | null = null;
+          const hasMultipleSections =
+            Array.isArray(data.sections) && data.sections.length > 1;
 
-          if (sectionTitle && data.sections) {
-            matchedSection = data.sections.find((s: Section) => s.title === sectionTitle) || null;
-            if (matchedSection) {
-              setActiveSection(matchedSection);
-              targetWords = matchedSection.wordCount;
+          if (hasMultipleSections) {
+            if (urlSectionTitle && urlSectionTitle !== 'all' && urlSectionTitle !== 'full') {
+              // Section specified in URL
+              const matched = data.sections.find(
+                (s: Section) => s.title === urlSectionTitle
+              );
+              if (matched) {
+                setActiveSection(matched);
+                setSelectedSectionTitle(matched.title);
+                setIsSelectingSection(false);
+                setReadingDuration(computeReadingDuration(matched.wordCount));
+              } else {
+                // If not found, show section picker
+                setIsSelectingSection(true);
+                setSelectedSectionTitle(data.sections[0]?.title || null);
+              }
+            } else if (urlSectionTitle === 'all' || urlSectionTitle === 'full') {
+              // User explicitly requested full paper
+              setActiveSection(null);
+              setIsSelectingSection(false);
+              setReadingDuration(computeReadingDuration(data.wordCount ?? 300));
+            } else {
+              // No section specified -> Present the Section Picker!
+              setIsSelectingSection(true);
+              const defaultSec =
+                data.sections.find((s: Section) => s.isDefault) || data.sections[0];
+              setSelectedSectionTitle(defaultSec?.title || null);
             }
+          } else {
+            // Single section or short article -> proceed straight to reading
+            setActiveSection(null);
+            setIsSelectingSection(false);
+            setReadingDuration(computeReadingDuration(data.wordCount ?? 300));
           }
-
-          setReadingDuration(computeReadingDuration(targetWords));
         }
       } catch (err) {
         if (!isCancelled) {
@@ -94,21 +129,60 @@ export default function ReadPage({ params }: PageProps) {
     return () => {
       isCancelled = true;
     };
-  }, [articleId, sectionTitle, idToken, loading]);
+  }, [articleId, urlSectionTitle, idToken, loading]);
 
   const handleFinishReading = useCallback(() => {
-    if (isNavigating) return; // prevent double navigation
+    if (isNavigating) return;
     setIsNavigating(true);
-    // Navigate to write page. DO NOT store article text anywhere.
-    const query = sectionTitle ? `?section=${encodeURIComponent(sectionTitle)}` : '';
+    const targetTitle = activeSection?.title || urlSectionTitle;
+    const query = targetTitle && targetTitle !== 'all' && targetTitle !== 'full'
+      ? `?section=${encodeURIComponent(targetTitle)}`
+      : '';
     router.push(`/write/${articleId}${query}`);
-  }, [articleId, sectionTitle, router, isNavigating]);
+  }, [articleId, activeSection, urlSectionTitle, router, isNavigating]);
+
+  // Timer only auto-starts if reading is active (not during section picker)
+  const isReadingActive = !fetching && !!article && !isSelectingSection;
 
   const timer = useTimer({
     totalSeconds: readingDuration,
-    autoStart: !fetching && !!article,
+    autoStart: isReadingActive,
     onExpire: handleFinishReading,
   });
+
+  // Start reading a specific selected section
+  const handleStartReadingSection = (titleToStart?: string) => {
+    if (!article || !article.sections) return;
+    const title = titleToStart || selectedSectionTitle || article.sections[0]?.title;
+    const matched = article.sections.find((s: Section) => s.title === title) || article.sections[0];
+    if (matched) {
+      setActiveSection(matched);
+      setSelectedSectionTitle(matched.title);
+      setIsSelectingSection(false);
+      const dur = computeReadingDuration(matched.wordCount);
+      setReadingDuration(dur);
+      timer.reset(dur);
+      router.replace(`/read/${articleId}?section=${encodeURIComponent(matched.title)}`);
+    }
+  };
+
+  // Start reading entire paper at once
+  const handleStartFullPaper = () => {
+    if (!article) return;
+    setActiveSection(null);
+    setIsSelectingSection(false);
+    const dur = computeReadingDuration(article.wordCount);
+    setReadingDuration(dur);
+    timer.reset(dur);
+    router.replace(`/read/${articleId}?section=full`);
+  };
+
+  // Switch back to the section picker
+  const handleBackToSectionPicker = () => {
+    timer.pause();
+    setIsSelectingSection(true);
+    router.replace(`/read/${articleId}`);
+  };
 
   // Guard against copying
   const handleCopyPrevent = (e: React.ClipboardEvent) => {
@@ -140,9 +214,84 @@ export default function ReadPage({ params }: PageProps) {
     );
   }
 
+  // MULTI-PART SECTION PICKER SCREEN
+  if (isSelectingSection && article.sections && article.sections.length > 1) {
+    const activeSelectedSection =
+      article.sections.find((s) => s.title === selectedSectionTitle) ||
+      article.sections[0];
+
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 space-y-8">
+        {/* Navigation / Header */}
+        <div className="pb-6 border-b border-slate-200/80">
+          <button
+            onClick={() => router.push('/')}
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition mb-4"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back to Curated Library</span>
+          </button>
+
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-600">
+            <Layers className="h-4 w-4" />
+            <span>Multi-Part Research Paper ({article.sections.length} Parts)</span>
+          </div>
+
+          <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            {article.title}
+          </h1>
+
+          {article.authors && article.authors.length > 0 && (
+            <p className="mt-1 text-xs text-slate-500">
+              By {article.authors.join(', ')} {article.year ? `(${article.year})` : ''}
+            </p>
+          )}
+
+          <p className="mt-3 text-sm text-slate-600 max-w-2xl leading-relaxed">
+            This paper is <strong>{article.wordCount} words</strong> long. For peak cognitive retention, the system divided it into <strong>{article.sections.length} manageable parts</strong>. Pick a part below to begin your focused timed reading session.
+          </p>
+        </div>
+
+        {/* Section Picker Card */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+          <SectionPicker
+            sections={article.sections}
+            selectedSection={selectedSectionTitle}
+            onSelectSection={(title) => setSelectedSectionTitle(title)}
+          />
+
+          {/* Action Row */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-100">
+            <button
+              onClick={handleStartFullPaper}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-xs hover:bg-slate-50 hover:text-slate-900 transition"
+            >
+              <span>Read Full Paper at Once ({article.wordCount} words)</span>
+            </button>
+
+            <button
+              onClick={() => handleStartReadingSection()}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+            >
+              <span>
+                Start Reading {activeSelectedSection?.title || 'Selected Part'}
+              </span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ACTIVE READING SESSION SCREEN
   const displayText = activeSection ? activeSection.text : article.text;
-  const displayTitle = activeSection ? `${article.title} — ${activeSection.title}` : article.title;
-  const targetWordCount = activeSection ? activeSection.wordCount : article.wordCount;
+  const displayTitle = activeSection
+    ? `${article.title} — ${activeSection.title}`
+    : article.title;
+  const targetWordCount = activeSection
+    ? activeSection.wordCount
+    : article.wordCount;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 select-none">
@@ -151,24 +300,42 @@ export default function ReadPage({ params }: PageProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-xs">
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl text-center">
             <div className="h-7 w-7 animate-spin rounded-full border-3 border-slate-900 border-t-transparent" />
-            <p className="text-base font-semibold text-slate-900">Time is up! Opening summary page...</p>
-            <p className="text-xs text-slate-500">Prepare to summarize key concepts from memory.</p>
+            <p className="text-base font-semibold text-slate-900">
+              Time is up! Opening summary page...
+            </p>
+            <p className="text-xs text-slate-500">
+              Prepare to summarize key concepts from memory.
+            </p>
           </div>
         </div>
       )}
+
       {/* Top sticky bar with timer */}
       <div className="sticky top-20 z-20 mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white/90 p-4 backdrop-blur-md shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700 shrink-0">
             <BookOpen className="h-4 w-4" />
           </div>
           <div>
             <h1 className="text-sm font-semibold text-slate-900 line-clamp-1 max-w-[280px] sm:max-w-md">
               {displayTitle}
             </h1>
-            <span className="text-xs text-slate-500 font-medium">
-              {targetWordCount} words • ~{Math.ceil(readingDuration / 60)} min read
-            </span>
+            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+              <span>{targetWordCount} words</span>
+              <span>•</span>
+              <span>~{Math.ceil(readingDuration / 60)} min read</span>
+              {article.sections && article.sections.length > 1 && (
+                <>
+                  <span>•</span>
+                  <button
+                    onClick={handleBackToSectionPicker}
+                    className="text-indigo-600 hover:text-indigo-750 font-semibold underline underline-offset-2"
+                  >
+                    Switch Part ({article.sections.length} total)
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -194,13 +361,25 @@ export default function ReadPage({ params }: PageProps) {
         className="rounded-2xl border border-slate-200/90 bg-white p-8 sm:p-12 text-slate-800 shadow-sm leading-relaxed font-serif text-lg selection:bg-indigo-50"
       >
         <header className="mb-8 border-b border-slate-100 pb-6 font-sans">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl font-sans">
-            {article.title}
-          </h1>
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl font-sans">
+              {article.title}
+            </h1>
+            {article.sections && article.sections.length > 1 && (
+              <button
+                onClick={handleBackToSectionPicker}
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition font-sans"
+              >
+                <Layers className="h-3.5 w-3.5 text-indigo-600" />
+                <span>All Parts</span>
+              </button>
+            )}
+          </div>
           {activeSection && (
-            <p className="mt-2 text-indigo-600 font-medium text-sm">
-              Section: {activeSection.title}
-            </p>
+            <div className="mt-2 inline-flex items-center gap-2 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200/60 font-sans">
+              <Sparkles className="h-3 w-3" />
+              <span>Current Section: {activeSection.title} ({activeSection.wordCount} words)</span>
+            </div>
           )}
           {article.authors && article.authors.length > 0 && (
             <p className="mt-2 text-xs text-slate-500 font-sans">
@@ -209,18 +388,32 @@ export default function ReadPage({ params }: PageProps) {
           )}
         </header>
 
-        <div className="space-y-6 whitespace-pre-line text-slate-800 text-justify font-serif">
-          {displayText}
-        </div>
+        <DocumentReader
+          content={displayText}
+          title={article.title}
+          sectionTitle={activeSection?.title}
+        />
       </article>
 
       {/* Bottom Action */}
-      <div className="mt-8 flex justify-end">
+      <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {article.sections && article.sections.length > 1 ? (
+          <button
+            onClick={handleBackToSectionPicker}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition"
+          >
+            <Layers className="h-4 w-4 text-slate-500" />
+            <span>Choose Another Part</span>
+          </button>
+        ) : (
+          <div />
+        )}
+
         <button
           onClick={timer.finish}
-          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white shadow-sm hover:bg-slate-800 transition"
         >
-          Finished Reading — Write Summary
+          <span>Finished Reading — Write Summary</span>
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>

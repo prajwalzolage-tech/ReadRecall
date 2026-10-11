@@ -65,6 +65,15 @@ export async function searchOpenAlex(
       const isOa = Boolean(item.open_access?.is_oa);
       const doi = item.doi ? item.doi.replace(/^https?:\/\/doi\.org\//, '') : undefined;
 
+      const landingPage =
+        item.primary_location?.landing_page_url ||
+        (doi ? `https://doi.org/${doi}` : undefined) ||
+        pdfUrl;
+
+      const docType = item.type
+        ? item.type.replace(/[-_]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+        : 'Journal Article';
+
       return {
         id: item.id || `oa:${Math.random().toString(36).slice(2)}`,
         title: item.title || 'Untitled Work',
@@ -73,6 +82,8 @@ export async function searchOpenAlex(
         abstract,
         doi,
         pdfUrl: isOa && pdfUrl ? pdfUrl : undefined,
+        landingUrl: landingPage,
+        documentType: docType,
         source: 'openalex',
         fullTextAvailable: isOa && Boolean(pdfUrl),
       };

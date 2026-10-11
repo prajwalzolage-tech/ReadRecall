@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyRequest } from '@/lib/auth-helper';
 import { getArticleById } from '@/lib/data-store';
+import { splitSections } from '@/lib/section-splitter';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,11 @@ export async function GET(
     const metadataOnly =
       request.nextUrl.searchParams.get('metadataOnly') === 'true';
 
+    let sections = article.sections;
+    if ((!sections || sections.length <= 1) && article.text && article.wordCount > 800) {
+      sections = splitSections(article.text);
+    }
+
     if (metadataOnly) {
       // Write page: return metadata without article text (enforces hiding)
       return NextResponse.json({
@@ -36,6 +42,7 @@ export async function GET(
         keyPointSource: article.keyPointSource,
         authors: article.authors,
         year: article.year,
+        sections,
       });
     }
 
@@ -51,7 +58,7 @@ export async function GET(
       keyPoints: article.keyPoints,
       authors: article.authors,
       year: article.year,
-      sections: article.sections,
+      sections,
     });
   } catch (error) {
     console.error('Error fetching article:', error);

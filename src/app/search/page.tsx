@@ -1,5 +1,5 @@
 // src/app/search/page.tsx
-// Search view: query arXiv and OpenAlex papers, auto-fetch full-text, or use fallback upload flow
+// Search view: query arXiv and OpenAlex papers, show results with direct links
 
 'use client';
 
@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
 import { SearchResults } from '@/components/search-results';
-import { Search, Sparkles, AlertCircle } from 'lucide-react';
+import { Search, Sparkles, AlertCircle, Info } from 'lucide-react';
 import type { MergedSearchResult } from '@/types';
 
 export default function SearchPage() {
@@ -19,10 +19,6 @@ export default function SearchPage() {
   const [results, setResults] = useState<MergedSearchResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [processingId, setProcessingId] = useState<string | null>(null);
-
-  // Fallback modal state
-  const [fallbackResult, setFallbackResult] = useState<MergedSearchResult | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -57,46 +53,6 @@ export default function SearchPage() {
     }
   };
 
-  const handleSelectFullText = async (result: MergedSearchResult) => {
-    if (!result.pdfUrl || !idToken) return;
-    setProcessingId(result.id);
-    setError(null);
-
-    try {
-      const res = await fetch('/api/search/fetch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          pdfUrl: result.pdfUrl,
-          title: result.title,
-          authors: result.authors,
-          year: result.year,
-          doi: result.doi,
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(
-          errData.error || 'Failed to download and parse paper text'
-        );
-      }
-
-      const data = await res.json();
-      router.push(`/read/${data.articleId}`);
-    } catch (err: any) {
-      setError(err.message || 'Error processing full text');
-      setProcessingId(null);
-    }
-  };
-
-  const handleSelectLinkOnly = (result: MergedSearchResult) => {
-    setFallbackResult(result);
-  };
-
   if (loading || !user) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -114,11 +70,24 @@ export default function SearchPage() {
           <span>Academic Corpus Explorer</span>
         </div>
         <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-          Search arXiv & OpenAlex Papers
+          Search arXiv &amp; OpenAlex Papers
         </h1>
         <p className="mt-2 text-sm text-slate-600 max-w-2xl leading-relaxed">
-          Search millions of peer-reviewed open-access preprints and journals. ReadRecall fetches full text, verifies key arguments with Jev, and prepares an active recall session.
+          Search millions of peer-reviewed open-access preprints and journals.
+          Find a paper, visit its source to download, then upload into ReadRecall for an active recall session.
         </p>
+      </div>
+
+      {/* How it works hint */}
+      <div className="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4">
+        <Info className="h-4 w-4 shrink-0 text-indigo-600 mt-0.5" />
+        <div className="text-xs text-indigo-800 leading-relaxed space-y-1">
+          <p className="font-semibold">How it works</p>
+          <p>
+            1. Search for a topic → 2. Click the paper link to visit the source website →
+            3. Download the PDF/document → 4. Upload it via the <strong>Upload</strong> page to start a timed reading session.
+          </p>
+        </div>
       </div>
 
       {/* Search Input Bar */}
@@ -166,69 +135,7 @@ export default function SearchPage() {
       )}
 
       {/* Results List */}
-      {hasSearched && (
-        <SearchResults
-          results={results}
-          onSelectFullText={handleSelectFullText}
-          onSelectLinkOnly={handleSelectLinkOnly}
-          processingId={processingId}
-        />
-      )}
-
-      {/* Fallback Dialog for Link-Only results */}
-      {fallbackResult && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 tracking-tight">
-              Direct PDF Download Unavailable
-            </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              This publication is indexed via citation metadata, but does not provide an automated direct open-access PDF URL:
-            </p>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs space-y-1">
-              <span className="font-semibold text-slate-900 block">
-                {fallbackResult.title}
-              </span>
-              {fallbackResult.doi && (
-                <a
-                  href={`https://doi.org/${fallbackResult.doi}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-indigo-600 font-medium hover:underline block"
-                >
-                  https://doi.org/{fallbackResult.doi}
-                </a>
-              )}
-            </div>
-
-            <p className="text-xs text-slate-500 leading-relaxed">
-              You can download the paper from the publisher or open repository, then upload the document directly into ReadRecall.
-            </p>
-
-            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setFallbackResult(null)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  router.push(
-                    `/upload?title=${encodeURIComponent(fallbackResult.title)}`
-                  );
-                }}
-                className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-slate-800"
-              >
-                Go to Manual Upload
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {hasSearched && <SearchResults results={results} />}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { searchArxiv } from '@/lib/search/arxiv';
 import { searchOpenAlex } from '@/lib/search/openalex';
 import { getOpenAccessUrl } from '@/lib/search/unpaywall';
 import { mergeResults } from '@/lib/search/merge';
+import { searchSystemArticles } from '@/lib/data-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,18 +43,21 @@ export async function GET(request: NextRequest) {
   const query = parseResult.data.q;
 
   try {
-    // Run arXiv and OpenAlex searches in parallel
-    const [arxivSettled, openalexSettled] = await Promise.allSettled([
+    // Run system search, arXiv, and OpenAlex in parallel
+    const [systemSettled, arxivSettled, openalexSettled] = await Promise.allSettled([
+      searchSystemArticles(query, user.uid),
       searchArxiv(query, 10),
       searchOpenAlex(query, 10),
     ]);
 
+    const systemArticles =
+      systemSettled.status === 'fulfilled' ? systemSettled.value : [];
     const arxivResults =
       arxivSettled.status === 'fulfilled' ? arxivSettled.value : [];
     const openalexResults =
       openalexSettled.status === 'fulfilled' ? openalexSettled.value : [];
 
-    // Merge & deduplicate
+    // Merge & deduplicate external results
     const merged = mergeResults(arxivResults, openalexResults);
 
     // Check Unpaywall for up to 5 results with DOIs that lack a direct PDF link
@@ -72,7 +76,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ results: merged });
+    return NextResponse.json({
+      systemArticles,
+      results: merged,
+      externalResults: merged,
+    });
   } catch (error) {
     console.error('Search API error:', error);
     return NextResponse.json(

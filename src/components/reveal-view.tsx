@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { Eye, EyeOff, RotateCcw, CheckCircle2, XCircle } from 'lucide-react';
+import { DocumentReader } from '@/components/document-reader';
 import type { KeyPoint } from '@/types';
 
 interface RevealViewProps {
@@ -119,8 +120,8 @@ export function RevealView({
             </span>
           </div>
 
-          <div className="font-serif text-slate-700 text-base leading-relaxed whitespace-pre-line text-justify">
-            {articleText}
+          <div className="pt-2">
+            <DocumentReader content={articleText} title={articleTitle} />
           </div>
         </div>
       )}

@@ -306,7 +306,9 @@ export default function ResultsPage({ params }: PageProps) {
             onClick={() => router.push(`/read/${article.id}`)}
             className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
           >
-            Re-read Article from Start
+            {article.sections && article.sections.length > 1
+              ? 'Choose Next Part / Re-read'
+              : 'Re-read Article from Start'}
           </button>
         )}
       </div>

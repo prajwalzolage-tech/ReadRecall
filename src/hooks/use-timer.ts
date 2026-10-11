@@ -31,7 +31,9 @@ export function useTimer({
   }, [onExpire]);
 
   // Track latest totalSeconds for reset
-  totalSecondsRef.current = totalSeconds;
+  useEffect(() => {
+    totalSecondsRef.current = totalSeconds;
+  }, [totalSeconds]);
 
   // Initialize/start the timer when autoStart transitions to true
   // This only fires ONCE per mount (or when autoStart first becomes true)

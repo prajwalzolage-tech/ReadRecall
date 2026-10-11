@@ -13,6 +13,7 @@ export function isFirestoreConfigured(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
 }
 import { CURATED_ARTICLES, getCuratedArticleById } from '@/lib/curated-articles';
+import { splitSections } from '@/lib/section-splitter';
 import type { Article, Attempt, ArticleListItem } from '@/types';
 import fs from 'fs';
 import path from 'path';
@@ -85,10 +86,13 @@ function saveLocalData() {
 }
 
 /**
- * List articles for the home feed / selection view
+ * List articles for the home feed / selection view.
+ * Curated articles are visible to everyone.
+ * Uploaded/searched articles are only visible to the user who created them.
  */
 export async function getArticles(filter?: {
   source?: string | null;
+  userId?: string | null;
 }): Promise<ArticleListItem[]> {
   // If Firestore is properly configured, attempt to fetch from Firestore
   if (isFirestoreConfigured()) {
@@ -100,6 +104,10 @@ export async function getArticles(filter?: {
       if (!snapshot.empty) {
         let items: ArticleListItem[] = snapshot.docs.map((document) => {
           const d = document.data();
+          let sCount = Array.isArray(d.sections) ? d.sections.length : 0;
+          if (sCount <= 1 && d.wordCount > 800) {
+            sCount = Math.ceil(d.wordCount / 500);
+          }
           return {
             id: document.id,
             title: d.title,
@@ -109,8 +117,19 @@ export async function getArticles(filter?: {
             authors: d.authors,
             year: d.year,
             mainIdea: d.mainIdea,
+            createdBy: d.createdBy,
+            sectionCount: sCount > 1 ? sCount : undefined,
           };
         });
+
+        // Filter by ownership: curated articles are global, others are per-user
+        if (filter?.userId) {
+          items = items.filter(
+            (a) => a.source === 'curated' || a.createdBy === filter.userId
+          );
+        } else {
+          items = items.filter((a) => a.source === 'curated');
+        }
 
         if (filter?.source) {
           items = items.filter((a) => a.source === filter.source);
@@ -133,7 +152,16 @@ export async function getArticles(filter?: {
     (a) => a.status === 'ready'
   );
 
-  let filtered = allArticles;
+  // Filter by ownership: curated articles are global, others are per-user
+  let filtered: Article[];
+  if (filter?.userId) {
+    filtered = allArticles.filter(
+      (a) => a.source === 'curated' || a.createdBy === filter.userId
+    );
+  } else {
+    filtered = allArticles.filter((a) => a.source === 'curated');
+  }
+
   if (filter?.source) {
     filtered = filtered.filter((a) => a.source === filter.source);
   }
@@ -144,16 +172,125 @@ export async function getArticles(filter?: {
       new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
   );
 
-  return filtered.map((a) => ({
-    id: a.id,
-    title: a.title,
-    wordCount: a.wordCount,
-    source: a.source,
-    keyPointSource: a.keyPointSource,
-    authors: a.authors,
-    year: a.year,
-    mainIdea: a.mainIdea,
-  }));
+  return filtered.map((a) => {
+    let sCount = a.sections ? a.sections.length : 0;
+    if (sCount <= 1 && a.wordCount > 800) {
+      sCount = Math.ceil(a.wordCount / 500);
+    }
+    return {
+      id: a.id,
+      title: a.title,
+      wordCount: a.wordCount,
+      source: a.source,
+      keyPointSource: a.keyPointSource,
+      authors: a.authors,
+      year: a.year,
+      mainIdea: a.mainIdea,
+      createdBy: a.createdBy,
+      sectionCount: sCount > 1 ? sCount : undefined,
+    };
+  });
+}
+
+/**
+ * Search internal system articles (curated, memory, and Firestore)
+ */
+export async function searchSystemArticles(
+  searchQuery: string,
+  userId?: string
+): Promise<ArticleListItem[]> {
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  if (!normalizedQuery || normalizedQuery.length < 2) return [];
+
+  const queryTerms = normalizedQuery
+    .split(/\s+/)
+    .map((w) => w.replace(/[^\w]/g, ''))
+    .filter((w) => w.length >= 2);
+
+  // Collect all available system articles (curated + uploaded + memory)
+  const articleMap = new Map<string, Article>();
+
+  for (const art of CURATED_ARTICLES) {
+    articleMap.set(art.id, art);
+  }
+
+  for (const [id, art] of memoryArticles.entries()) {
+    if (art.status === 'ready') {
+      articleMap.set(id, art);
+    }
+  }
+
+  if (isFirestoreConfigured()) {
+    try {
+      const articlesRef = collection(db, 'articles');
+      const q = query(articlesRef, where('status', '==', 'ready'), limit(100));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        for (const docSnap of snapshot.docs) {
+          const d = docSnap.data();
+          articleMap.set(docSnap.id, { id: docSnap.id, ...d } as Article);
+        }
+      }
+    } catch (err) {
+      console.warn('[DataStore] Firestore search fallback to memory:', err);
+    }
+  }
+
+  const allArticles = Array.from(articleMap.values()).filter(
+    (a) => a.source === 'curated' || (userId && a.createdBy === userId)
+  );
+
+  // Score articles based on relevance
+  const scored = allArticles.map((article) => {
+    let score = 0;
+    const lowerTitle = (article.title || '').toLowerCase();
+    const lowerMainIdea = (article.mainIdea || '').toLowerCase();
+    const lowerText = (article.text || '').slice(0, 4000).toLowerCase();
+    const authorsStr = (article.authors || []).join(' ').toLowerCase();
+
+    // Exact phrase match in title
+    if (lowerTitle.includes(normalizedQuery)) {
+      score += 100;
+    }
+
+    // Exact phrase match in mainIdea
+    if (lowerMainIdea.includes(normalizedQuery)) {
+      score += 50;
+    }
+
+    // Term by term match
+    for (const term of queryTerms) {
+      if (lowerTitle.includes(term)) {
+        score += 30;
+      }
+      if (lowerMainIdea.includes(term)) {
+        score += 15;
+      }
+      if (authorsStr.includes(term)) {
+        score += 15;
+      }
+      if (lowerText.includes(term)) {
+        score += 5;
+      }
+    }
+
+    return { article, score };
+  });
+
+  return scored
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8)
+    .map((s) => ({
+      id: s.article.id,
+      title: s.article.title,
+      wordCount: s.article.wordCount,
+      source: s.article.source,
+      keyPointSource: s.article.keyPointSource,
+      authors: s.article.authors,
+      year: s.article.year,
+      mainIdea: s.article.mainIdea,
+    }));
 }
 
 /**
@@ -166,7 +303,11 @@ export async function getArticleById(id: string): Promise<Article | null> {
 
   // 2. Memory store match
   if (memoryArticles.has(id)) {
-    return memoryArticles.get(id)!;
+    const art = memoryArticles.get(id)!;
+    if ((!art.sections || art.sections.length <= 1) && art.text && art.wordCount > 800) {
+      art.sections = splitSections(art.text);
+    }
+    return art;
   }
 
   if (isFirestoreConfigured()) {
@@ -175,6 +316,9 @@ export async function getArticleById(id: string): Promise<Article | null> {
       const document = await getDoc(docRef);
       if (document.exists()) {
         const article = { id: document.id, ...document.data() } as Article;
+        if ((!article.sections || article.sections.length <= 1) && article.text && article.wordCount > 800) {
+          article.sections = splitSections(article.text);
+        }
         memoryArticles.set(document.id, article);
         return article;
       }
@@ -199,13 +343,18 @@ export async function saveArticle(
     articleData.id ||
     `art_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
+  const text = articleData.text;
+  const wordCount = articleData.wordCount || text.trim().split(/\s+/).length;
+  const sections =
+    articleData.sections || (wordCount > 800 ? splitSections(text) : undefined);
+
   const fullArticle: Article = {
     id,
     title: articleData.title,
-    text: articleData.text,
+    text,
     source: articleData.source || 'uploaded',
     status: articleData.status || 'ready',
-    wordCount: articleData.wordCount || articleData.text.trim().split(/\s+/).length,
+    wordCount,
     contentHash: articleData.contentHash || id,
     mainIdea: articleData.mainIdea || '',
     keyPoints: articleData.keyPoints || [],
@@ -213,7 +362,7 @@ export async function saveArticle(
     appliedPurpose: articleData.appliedPurpose,
     authors: articleData.authors,
     year: articleData.year,
-    sections: articleData.sections,
+    sections,
     createdAt: articleData.createdAt || new Date().toISOString(),
     createdBy: articleData.createdBy || 'user',
   };
@@ -224,7 +373,10 @@ export async function saveArticle(
 
   if (isFirestoreConfigured()) {
     try {
-      await setDoc(doc(db, 'articles', id), fullArticle);
+      const cleanData = Object.fromEntries(
+        Object.entries(fullArticle).filter(([_, v]) => v !== undefined)
+      );
+      await setDoc(doc(db, 'articles', id), cleanData);
     } catch (err) {
       console.warn(
         '[DataStore] Could not persist article to Firestore:',

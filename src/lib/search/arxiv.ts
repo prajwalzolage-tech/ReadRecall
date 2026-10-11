@@ -16,7 +16,12 @@ export async function searchArxiv(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
 
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'ReadRecall/1.0 (mailto:your-email@example.com)',
+      },
+    });
     clearTimeout(timeout);
 
     if (!response.ok) {
@@ -69,6 +74,14 @@ export async function searchArxiv(
       if (!pdfUrl && id) {
         pdfUrl = `https://arxiv.org/pdf/${id}.pdf`;
       }
+      
+      if (pdfUrl) {
+        // Upgrade to https and ensure .pdf extension
+        pdfUrl = pdfUrl.replace(/^http:\/\//i, 'https://');
+        if (!pdfUrl.endsWith('.pdf')) {
+          pdfUrl += '.pdf';
+        }
+      }
 
       const doi = entry['arxiv:doi']?.['#text'] || entry['arxiv:doi'] || undefined;
 
@@ -80,6 +93,8 @@ export async function searchArxiv(
         abstract: (entry.summary || '').replace(/\s+/g, ' ').trim(),
         doi: typeof doi === 'string' ? doi : undefined,
         pdfUrl,
+        landingUrl: id ? `https://arxiv.org/abs/${id}` : pdfUrl,
+        documentType: 'arXiv Preprint',
         source: 'arxiv',
         fullTextAvailable: !!pdfUrl,
       };

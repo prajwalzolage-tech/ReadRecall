@@ -54,6 +54,16 @@ export function mergeResults(
         existing.abstract = item.abstract;
       }
 
+      // Preserve landingUrl if existing does not have one
+      if (!existing.landingUrl && item.landingUrl) {
+        existing.landingUrl = item.landingUrl;
+      }
+
+      // Preserve documentType if not set
+      if (!existing.documentType && item.documentType) {
+        existing.documentType = item.documentType;
+      }
+
       // Merge authors
       if (item.authors && item.authors.length > existing.authors.length) {
         existing.authors = item.authors;

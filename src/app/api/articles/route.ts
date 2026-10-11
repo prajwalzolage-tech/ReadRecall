@@ -11,7 +11,16 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const source = request.nextUrl.searchParams.get('source');
-    const articles = await getArticles({ source });
+
+    // Optionally extract authenticated user — auth is not required for
+    // viewing curated articles, but needed to see user's own uploads
+    let userId: string | null = null;
+    const authResult = await verifyRequest(request);
+    if (!('error' in authResult)) {
+      userId = authResult.user.uid;
+    }
+
+    const articles = await getArticles({ source, userId });
 
     return NextResponse.json({ articles });
   } catch (error) {

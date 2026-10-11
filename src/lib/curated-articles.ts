@@ -297,6 +297,58 @@ Critics argue that Web3 is overly complex for average users, environmentally cos
     createdAt: '2024-01-10T00:00:00.000Z',
     createdBy: 'system-seed',
   },
+  {
+    id: 'curated-11',
+    title: 'The Evolution of Artificial Intelligence and Large Language Models',
+    source: 'curated',
+    keyPointSource: 'human',
+    status: 'ready',
+    authors: ['AI Research Institute'],
+    year: 2023,
+    contentHash: 'hash-evolution-ai-llms-2023',
+    wordCount: 200,
+    mainIdea: 'Artificial Intelligence has rapidly evolved through neural networks and transformers, culminating in Large Language Models capable of human-like reasoning.',
+    text: `Artificial Intelligence (AI) has undergone a massive transformation since its inception. Early AI relied on rule-based systems, but the real breakthrough came with machine learning and artificial neural networks. By mimicking the human brain's interconnected neurons, these models learned to recognize patterns in massive datasets.
+
+The introduction of the Transformer architecture in 2017 revolutionized natural language processing. Unlike previous models that processed text sequentially, Transformers use a mechanism called "self-attention" to weigh the importance of every word in a sentence simultaneously. This allowed models to understand context and nuance better than ever before.
+
+This architectural leap paved the way for Large Language Models (LLMs) like GPT-3 and GPT-4. Trained on internet-scale data, these models do not just predict the next word; they exhibit emergent abilities such as reasoning, translation, and code generation. 
+
+As AI becomes deeply integrated into software development, healthcare, and education, the focus is shifting toward alignment and safety. Ensuring that AI systems are helpful, harmless, and honest remains the central challenge for the next decade of AI research.`,
+    keyPoints: [
+      { text: 'Early AI relied on rule-based systems, but neural networks brought breakthroughs by learning from datasets', verified: true },
+      { text: 'The Transformer architecture introduced in 2017 uses self-attention to process sentences simultaneously', verified: true },
+      { text: 'Large Language Models exhibit emergent abilities like reasoning and code generation beyond text prediction', verified: true },
+      { text: 'Modern AI research is heavily focused on alignment and safety to ensure models remain helpful and harmless', verified: true },
+    ],
+    createdAt: '2024-01-11T00:00:00.000Z',
+    createdBy: 'system-seed',
+  },
+  {
+    id: 'curated-12',
+    title: 'Introducing Jev AI: TypeSafe System One Models',
+    source: 'curated',
+    keyPointSource: 'human',
+    status: 'ready',
+    authors: ['TypeSafe Engineering'],
+    year: 2024,
+    contentHash: 'hash-jev-ai-typesafe-2024',
+    wordCount: 150,
+    mainIdea: 'Jev AI provides TypeSafe System One models that turn natural language and application state into programmable, typed judgments.',
+    text: `Jev AI represents a shift in how developers build AI-powered software. Instead of unpredictable text generation, Jev provides "System One" models that act as small units of AI intelligence. These models are designed to be used like programming primitives, bringing programmable common sense directly into application code.
+
+The core innovation is TypeSafe AI. Jev turns natural language and complex application state into typed judgments and probabilities that code can reliably combine. Instead of an LLM prompt-and-parse step that might return malformed JSON, Jev guarantees structured decisions.
+
+Applications for Jev include intelligent routing, content ranking, data extraction, and verification. Because it focuses on structured, typed outputs rather than open-ended chatting, developers can use Jev to build reliable interactive experiences. It bridges the gap between the probabilistic nature of AI and the deterministic requirements of traditional software engineering.`,
+    keyPoints: [
+      { text: 'Jev AI provides System One models that act as predictable, small units of AI intelligence', verified: true },
+      { text: 'TypeSafe AI turns natural language into reliable, typed judgments instead of open-ended text', verified: true },
+      { text: 'It eliminates the need for fragile prompt-and-parse steps that often return malformed data', verified: true },
+      { text: 'Jev bridges the gap between probabilistic AI behavior and deterministic software engineering', verified: true },
+    ],
+    createdAt: '2024-01-12T00:00:00.000Z',
+    createdBy: 'system-seed',
+  },
 ];
 
 export const CURATED_ARTICLES: Article[] = RAW_ARTICLES.map((article) => {

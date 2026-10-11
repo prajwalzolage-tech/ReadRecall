@@ -15,7 +15,7 @@ export const SUMMARY_MAX_CHARS = 5000;
 
 // Article constraints
 export const ARTICLE_MIN_WORDS = 100;
-export const ARTICLE_MAX_WORDS = 5000;
+export const ARTICLE_MAX_WORDS = 25000;
 export const SECTION_MAX_WORDS = 800;
 export const SECTION_TARGET_WORDS = 500;
 

@@ -102,6 +102,8 @@ export interface SearchResult {
   abstract: string;
   doi?: string;
   pdfUrl?: string;
+  landingUrl?: string;
+  documentType?: string;
   source: 'arxiv' | 'openalex';
   fullTextAvailable: boolean;
 }
@@ -162,5 +164,9 @@ export interface ArticleListItem {
   wordCount: number;
   source: Article['source'];
   keyPointSource: Article['keyPointSource'];
+  authors?: string[];
+  year?: number;
   mainIdea?: string;
+  createdBy?: string;
+  sectionCount?: number;
 }

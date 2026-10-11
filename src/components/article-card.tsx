@@ -34,6 +34,11 @@ export function ArticleCard({ article }: ArticleCardProps) {
                 AI Verified
               </span>
             )}
+            {article.sectionCount && article.sectionCount > 1 && (
+              <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 border border-indigo-200/80">
+                {article.sectionCount} Parts
+              </span>
+            )}
           </div>
 
           {/* Title */}
@@ -47,7 +52,11 @@ export function ArticleCard({ article }: ArticleCardProps) {
           <div className="flex items-center gap-3">
             <span>{article.wordCount} words</span>
             <span>•</span>
-            <span>~{readingTime} min read</span>
+            {article.sectionCount && article.sectionCount > 1 ? (
+              <span className="text-indigo-600 font-semibold">{article.sectionCount} Reading Parts</span>
+            ) : (
+              <span>~{readingTime} min read</span>
+            )}
           </div>
 
           {/* Arrow */}

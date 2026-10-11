@@ -29,8 +29,8 @@ describe('useTimer hook', () => {
   });
 
   it('starts countdown dynamically when autoStart transitions from false to true with updated totalSeconds', () => {
-    let autoStart = false;
-    let totalSeconds = 105;
+    const autoStart = false;
+    const totalSeconds = 105;
 
     const { result, rerender } = renderHook(
       ({ auto, sec }) => useTimer({ totalSeconds: sec, autoStart: auto }),

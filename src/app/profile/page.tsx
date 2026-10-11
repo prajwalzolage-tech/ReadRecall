@@ -51,7 +51,7 @@ export default function ProfilePage() {
 
         if (attemptsRes.ok) {
           const data = await attemptsRes.json();
-          let allAttempts: Attempt[] = data.attempts || [];
+          const allAttempts: Attempt[] = data.attempts || [];
           try {
             const local = JSON.parse(
               localStorage.getItem('readrecall_user_attempts') || '[]'
