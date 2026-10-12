@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Clean and professionally format text
-    let cleanedText = cleanArticleText(rawText);
+    const cleanedText = cleanArticleText(rawText);
     let structuredText = formatDocument(cleanedText, { title: articleTitle });
     let wordCount = countWords(structuredText);
 

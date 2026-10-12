@@ -17,6 +17,7 @@
     "@ai-sdk/openai": "^4.0.83",
     "@ai-sdk/react": "^4.0.130",
     "@base-ui/react": "^1.8.0",
+    "@mediapipe/tasks-vision": "1.1.0",
     "@typesafe-ai/sdk": "^0.6.0",
     "ai": "^7.0.127",
     "class-variance-authority": "^0.7.1",

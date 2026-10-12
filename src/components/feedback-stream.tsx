@@ -6,6 +6,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Sparkles, MessageSquare } from 'lucide-react';
 
+import type { EngagementSummary } from '@/types';
+
 interface FeedbackStreamProps {
   articleId: string;
   summary: string;
@@ -13,6 +15,7 @@ interface FeedbackStreamProps {
   rating: number;
   idToken: string;
   initialFeedback?: string;
+  engagement?: EngagementSummary;
 }
 
 export function FeedbackStream({
@@ -22,6 +25,7 @@ export function FeedbackStream({
   rating,
   idToken,
   initialFeedback = '',
+  engagement,
 }: FeedbackStreamProps) {
   const [feedback, setFeedback] = useState(initialFeedback);
   const [isStreaming, setIsStreaming] = useState(!initialFeedback);
@@ -45,6 +49,7 @@ export function FeedbackStream({
             summary,
             jevResults,
             rating,
+            ...(engagement ? { engagement } : {}),
           }),
         });
 
@@ -72,7 +77,7 @@ export function FeedbackStream({
     };
 
     startStreaming();
-  }, [articleId, summary, jevResults, rating, idToken, initialFeedback]);
+  }, [articleId, summary, jevResults, rating, idToken, initialFeedback, engagement]);
 
   return (
     <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/50 via-white to-slate-50/50 p-6 sm:p-8 shadow-sm">

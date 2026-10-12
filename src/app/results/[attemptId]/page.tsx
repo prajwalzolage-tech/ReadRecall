@@ -10,6 +10,7 @@ import { RatingDisplay } from '@/components/rating-display';
 import { UserSummaryCard } from '@/components/user-summary-card';
 import { FeedbackStream } from '@/components/feedback-stream';
 import { RevealView } from '@/components/reveal-view';
+import { EngagementCard } from '@/components/engagement-card';
 import { computeDelta } from '@/lib/rating';
 import { ArrowLeft, TrendingUp, Sparkles, BookOpen } from 'lucide-react';
 import type { Attempt, Article } from '@/types';
@@ -303,6 +304,11 @@ export default function ResultsPage({ params }: PageProps) {
         isRevision={Boolean(safeAttempt.retryOf)}
       />
 
+      {/* 2b. Engagement Card (if available) */}
+      {safeAttempt.engagement && (
+        <EngagementCard engagement={safeAttempt.engagement} />
+      )}
+
       {/* 3. Streamed AI Tutor Coaching Feedback */}
       {idToken && (
         <FeedbackStream
@@ -311,6 +317,7 @@ export default function ResultsPage({ params }: PageProps) {
           jevResults={(safeAttempt as any).jevResults || {}}
           rating={safeAttempt.rating}
           idToken={idToken}
+          engagement={safeAttempt.engagement}
         />
       )}
 

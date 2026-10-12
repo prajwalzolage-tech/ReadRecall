@@ -76,6 +76,26 @@ export const flagsSchema = z.object({
   primaryGap: z.string(),
 });
 
+export const engagementTimelinePointSchema = z.object({
+  tSec: z.number().int().min(0),
+  focused: z.boolean(),
+  emotion: z.string(),
+});
+
+export const engagementSummarySchema = z.object({
+  focusPercent: z.number().min(0).max(100),
+  distractedSeconds: z.number().min(0),
+  emotionPercent: z.object({
+    enjoying: z.number().min(0).max(100),
+    confused: z.number().min(0).max(100),
+    bored: z.number().min(0).max(100),
+    neutral: z.number().min(0).max(100),
+  }),
+  confusedMoments: z.number().int().min(0),
+  boredMoments: z.number().int().min(0),
+  timeline: z.array(engagementTimelinePointSchema).optional(),
+});
+
 export const attemptSchema = z.object({
   userId: z.string(),
   articleId: z.string(),
@@ -89,6 +109,7 @@ export const attemptSchema = z.object({
   latency: z.number().min(0),
   retryOf: z.string().optional(),
   createdAt: z.string(),
+  engagement: engagementSummarySchema.optional(),
 });
 
 // ─── API request schemas ───
@@ -97,13 +118,16 @@ export const evaluateRequestSchema = z.object({
   articleId: z.string().min(1),
   summary: z.string().min(1).max(5000),
   section: z.string().optional(),
+  retryOf: z.string().optional(),
+  engagement: engagementSummarySchema.optional(),
 });
 
 export const feedbackRequestSchema = z.object({
   articleId: z.string().min(1),
-  summary: z.string().min(1).max(5000),
-  jevResults: z.record(z.string(), z.unknown()),
-  rating: z.number().int().min(1).max(10),
+  summary: z.string().max(5000).optional().default(''),
+  jevResults: z.record(z.string(), z.unknown()).optional().default({}),
+  rating: z.number().min(1).max(10).optional().default(5),
+  engagement: engagementSummarySchema.optional(),
 });
 
 export const uploadProcessRequestSchema = z.object({

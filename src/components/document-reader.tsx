@@ -9,10 +9,7 @@ import { formatDocument } from '@/lib/document-formatter';
 import {
   Sparkles,
   Type,
-  AlignLeft,
   ChevronRight,
-  BookOpen,
-  Layers,
 } from 'lucide-react';
 
 interface DocumentReaderProps {

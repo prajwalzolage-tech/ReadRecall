@@ -48,6 +48,7 @@ ReadRecall enforces: **Read (timed) → Article Hidden → Write from Memory →
 
 - **Frameworks:** Next.js 16, React 19, TypeScript 5, TailwindCSS 4
 - **AI/Evaluation:** @typesafe-ai/sdk (Jev), Vercel AI SDK, @ai-sdk/google (Gemini), @ai-sdk/openai (OpenAI/Groq)
+- **Computer Vision (On-Device):** @mediapipe/tasks-vision (Face Landmarker via self-hosted WASM & .task models)
 - **Backend:** Firebase Auth + Firestore, Firebase Admin, Cloudinary
 - **Document Processing:** pdf-parse, mammoth, fast-xml-parser
 - **UI:** Recharts, Lucide React, shadcn/ui, Zod
@@ -60,14 +61,28 @@ ReadRecall enforces: **Read (timed) → Article Hidden → Write from Memory →
 ## 6. Implementation & Evidence
 
 - **8 API route handlers** built: `/api/auth/verify`, `/api/evaluate`, `/api/feedback`, `/api/upload/*`, `/api/search/*`, `/api/articles`, `/api/attempts`, `/api/user/profile`.
-- **13 reusable React components** developed: ArticleCard, AuthProvider, FeedbackStream, NavBar, RadarChart, RatingDisplay, ReadingTimer, RevealView, SearchResults, SectionPicker, SummaryEditor, TrendChart, UploadForm.
-- **18 library modules** implemented covering evaluation (`jev.ts`, `rating.ts`, `copy-detection.ts`, `rating.config.ts`), LLM services (`llm.ts`), data persistence (`data-store.ts`), content processing (`text-extraction.ts`, `section-splitter.ts`, `text-cleaning.ts`), search (`arxiv.ts`, `openalex.ts`, `unpaywall.ts`, `merge.ts`), security (`ssrf-guard.ts`, `auth-helper.ts`, `rate-limit.ts`), and utilities (`schemas.ts`, `constants.ts`, `suggestion.ts`).
+- **14 reusable React components** developed: ArticleCard, AuthProvider, FeedbackStream, NavBar, RadarChart, RatingDisplay, ReadingTimer, RevealView, SearchResults, SectionPicker, SummaryEditor, TrendChart, UploadForm, EngagementCard.
+- **19 library modules** implemented covering evaluation (`jev.ts`, `rating.ts`, `copy-detection.ts`, `rating.config.ts`), engagement monitoring (`engagement.ts`), LLM services (`llm.ts`), data persistence (`data-store.ts`), content processing (`text-extraction.ts`, `section-splitter.ts`, `text-cleaning.ts`), search (`arxiv.ts`, `openalex.ts`, `unpaywall.ts`, `merge.ts`), security (`ssrf-guard.ts`, `auth-helper.ts`, `rate-limit.ts`), and utilities (`schemas.ts`, `constants.ts`, `suggestion.ts`).
 - **Jev evaluation** uses `@typesafe-ai/sdk` with `noul()`, `score()`, and `choice()` question primitives to decompose comprehension into structured probabilistic judgments.
+- **Webcam Engagement Monitoring Pipeline:**
+  - **Self-Hosted Offline Execution:** MediaPipe Face Landmarker loaded from local WASM (`/mediapipe/wasm`) and task model (`/models/face_landmarker.task`) with zero CDN dependencies, integrated with Service Worker caching for PWA offline execution.
+  - **Attentive Signals & Blendshapes:** Detects focus status (head yaw/pitch > 25° or eye blink > 0.6) and heuristic affective signals (`enjoying`, `confused`, `bored`, `neutral`) sampled at ~5 fps (200ms).
+  - **Adaptive Baseline:** Accumulates a 5-second initial baseline to calibrate facial idiosyncrasies before applying relative deltas.
+  - **Flicker Removal:** Pure function smoothing using a 3-second sliding window with majority voting and a 2-second minimum state hold.
+  - **Privacy Architecture:**
+    - Zero server transmission: Video and raw image frames are processed entirely on-device and never saved or transmitted.
+    - Explicit opt-in consent card displayed prior to reading; reading flow remains fully functional without camera.
+    - Camera hardware tracks are instantly terminated on reading completion or timer expiration.
+    - With **Strict Privacy Mode** enabled, detailed second-by-second timelines are discarded; only aggregate summary numbers are retained.
+    - Context-Only: Engagement metrics do not alter Jev rating scores or guards; tutor prompts use engagement gently (e.g. "you seemed to find the section around 2:10 difficult") without making factual emotional accusations.
+  - **Known Limitations:**
+    - Susceptible to poor or harsh backlighting and face occlusions (e.g. resting head on hands or thick glasses).
+    - Affective states are heuristic blendshape approximations, explicitly labeled as estimates.
 - **Copy detection** implemented via 4-gram sliding window with Unicode-aware tokenization; tested to correctly flag ≥ 60% verbatim overlap.
 - **File validation** uses raw magic-byte inspection (PDF: `%PDF`, DOCX: `PK\x03\x04`) instead of trusting client-supplied MIME types.
 - **SSRF guard** performs DNS resolution and checks resolved IPs against all RFC 1918 private ranges, loopback, link-local (169.254.x.x), and IPv6 private prefixes.
 - **Offline benchmark script** (`evaluation/evaluate.ts`) runs all three pipelines against 10 human-graded sample summaries from `evaluation/sample-data.csv` and outputs structured metrics to `evaluation/benchmark_results.json`.
-- **Unit tests** written with Vitest covering rating calculation, guard activation, copy ratio computation, and API route handlers.
+- **Unit tests** written with Vitest covering rating calculation, guard activation, copy ratio computation, engagement classification/smoothing/summary, and API route handlers.
 - **PWA support** enabled via `manifest.json` and `sw.js` for mobile installability and offline capability.
 
 ### App Screenshots

@@ -98,6 +98,20 @@ graph TB
    - SSRF-guarded automatic PDF retrieval and extraction.
 8. **PWA & Offline Capability:**
    - Web App Manifest (`/manifest.json`), service worker (`/sw.js`), mobile installable.
+9. **Webcam-Based Client-Side Engagement Monitoring:**
+   - **On-Device Vision Pipeline:** MediaPipe Face Landmarker runs 100% in-browser via self-hosted WebAssembly (`/mediapipe/wasm`) and pre-cached task models (`/models/face_landmarker.task`) without CDN or third-party cloud dependencies.
+   - **Focus & Emotion Estimation:** Samples at ~5 fps (200ms interval). Determines attentiveness from head yaw/pitch angles (±25°) and eye aspect/blink rates; estimates affective states (`enjoying`, `confused`, `bored`, `neutral`) using blendshape activation.
+   - **Personalized Calibration:** Collects a 5-second neutral baseline when reading begins to calibrate thresholds to individual facial features.
+   - **Anti-Flicker Smoothing:** Applies a 3-second sliding window with majority voting and a 2-second minimum state-hold time.
+   - **Strict Privacy Architecture:**
+     - Zero video or frame data is ever transmitted, recorded, or saved to servers or cloud storage.
+     - Monitoring is strictly opt-in via a pre-reading consent card. If camera access is denied or unsupported, standard reading and evaluation work uninterrupted.
+     - Camera tracks are stopped immediately upon reading expiration or submission.
+     - With **Strict Privacy Mode** enabled, per-second timelines are automatically scrubbed, preserving only aggregate percentages.
+     - Engagement data is purely contextual and never alters objective Jev recall ratings or scoring guards.
+   - **Known Limitations:**
+     - Susceptible to severe backlighting, low-light environments, and reflection off thick eyeglasses.
+     - Emotional indicators are heuristic blendshape estimates, explicitly labeled as guidance rather than clinical fact.
 
 ---
 

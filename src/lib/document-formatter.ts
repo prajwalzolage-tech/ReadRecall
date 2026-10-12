@@ -119,7 +119,7 @@ export function formatDocument(
   if (!rawText) return '';
 
   // 1. Initial sanitization and PDF artifact cleaning
-  let cleaned = cleanArticleText(rawText);
+  const cleaned = cleanArticleText(rawText);
 
   // If text already has clean markdown headings and lists, just polish terms
   const hasMarkdownHeadings = /^#{1,3}\s+[^\n]+/m.test(cleaned);

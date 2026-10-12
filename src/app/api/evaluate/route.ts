@@ -40,8 +40,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { articleId, summary, section } = parseResult.data;
-    const retryOf = typeof json.retryOf === 'string' ? json.retryOf : undefined;
+    const { articleId, summary, section, retryOf, engagement } = parseResult.data;
 
     // 3. Fetch article
     const articleData = await getArticleById(articleId);
@@ -87,6 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. Store attempt in data-store
+    // Engagement is context-only — never changes rating or guards.
     const attemptData: any = {
       userId: user.uid,
       articleId,
@@ -104,9 +104,20 @@ export async function POST(request: NextRequest) {
     if (retryOf) attemptData.retryOf = retryOf;
     if (storeSummary) attemptData.summary = summary;
 
+    // Store engagement summary numbers; drop per-second timeline in Strict Privacy Mode
+    if (engagement) {
+      if (storeSummary) {
+        attemptData.engagement = engagement;
+      } else {
+        // Privacy mode: store only aggregate numbers, drop timeline
+        const { timeline: _timeline, ...engagementNumbers } = engagement;
+        attemptData.engagement = engagementNumbers;
+      }
+    }
+
     const savedAttempt = await saveAttempt(attemptData);
 
-    // 8. Return response
+    // 8. Return response (include engagement so the client can display it on the results page)
     return NextResponse.json({
       attemptId: savedAttempt.id,
       attempt: savedAttempt,
@@ -118,6 +129,7 @@ export async function POST(request: NextRequest) {
       jevModel,
       latency,
       jevResults,
+      ...(attemptData.engagement ? { engagement: attemptData.engagement } : {}),
     });
   } catch (error) {
     console.error('Evaluate API error:', error);

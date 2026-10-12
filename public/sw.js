@@ -35,9 +35,9 @@ self.addEventListener('fetch', (event) => {
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
-        // Only cache static assets (images, fonts, manifest)
+        // Only cache static assets (images, fonts, manifest, models, wasm)
         if (
-          request.url.match(/\.(png|jpg|jpeg|svg|gif|webp|ico|woff|woff2|json)$/)
+          request.url.match(/\.(png|jpg|jpeg|svg|gif|webp|ico|woff|woff2|json|task|wasm)$/)
         ) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {

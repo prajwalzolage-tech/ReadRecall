@@ -19,6 +19,45 @@ describe('evaluate-integration', () => {
     expect(invalid.success).toBe(false);
   });
 
+  it('validates evaluate request body with engagement summary', () => {
+    const withEngagement = evaluateRequestSchema.safeParse({
+      articleId: 'art_123',
+      summary: 'This is a valid summary with sufficient length and content.',
+      engagement: {
+        focusPercent: 88,
+        distractedSeconds: 12,
+        emotionPercent: {
+          enjoying: 25,
+          confused: 15,
+          bored: 10,
+          neutral: 50,
+        },
+        confusedMoments: 2,
+        boredMoments: 1,
+        timeline: [
+          { tSec: 1, focused: true, emotion: 'neutral' },
+          { tSec: 2, focused: false, emotion: 'confused' },
+        ],
+      },
+    });
+    expect(withEngagement.success).toBe(true);
+    if (withEngagement.success) {
+      expect(withEngagement.data.engagement?.focusPercent).toBe(88);
+      expect(withEngagement.data.engagement?.confusedMoments).toBe(2);
+    }
+  });
+
+  it('validates evaluate request body without engagement (optional field)', () => {
+    const withoutEngagement = evaluateRequestSchema.safeParse({
+      articleId: 'art_456',
+      summary: 'Another valid summary that has no engagement data attached.',
+    });
+    expect(withoutEngagement.success).toBe(true);
+    if (withoutEngagement.success) {
+      expect(withoutEngagement.data.engagement).toBeUndefined();
+    }
+  });
+
   it('runs end-to-end rating computation with mocked Jev outputs', () => {
     const mockJev = {
       kp_0: { probability: 0.9 },

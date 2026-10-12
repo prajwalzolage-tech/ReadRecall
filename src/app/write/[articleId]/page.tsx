@@ -77,6 +77,18 @@ export default function WritePage({ params }: PageProps) {
     setError(null);
 
     try {
+      // Retrieve engagement summary captured during reading (if any)
+      let engagement: Record<string, unknown> | undefined;
+      try {
+        const raw = sessionStorage.getItem('readrecall_engagement_summary');
+        if (raw) {
+          engagement = JSON.parse(raw);
+          sessionStorage.removeItem('readrecall_engagement_summary');
+        }
+      } catch {
+        // ignore
+      }
+
       const res = await fetch('/api/evaluate', {
         method: 'POST',
         headers: {
@@ -88,6 +100,7 @@ export default function WritePage({ params }: PageProps) {
           summary,
           section: sectionTitle,
           retryOf,
+          ...(engagement ? { engagement } : {}),
         }),
       });
 
@@ -114,6 +127,14 @@ export default function WritePage({ params }: PageProps) {
         createdAt: data.attempt?.createdAt || new Date().toISOString(),
         section: sectionTitle,
         retryOf,
+        // Include real engagement monitoring data (from API response, server-saved attempt, or local cache)
+        ...(data.engagement
+          ? { engagement: data.engagement }
+          : data.attempt?.engagement
+            ? { engagement: data.attempt.engagement }
+            : engagement
+              ? { engagement }
+              : {}),
       };
 
       try {

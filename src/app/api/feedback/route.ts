@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const json = await request.json();
-    const { articleId, summary, jevResults, rating } = json;
+    const { articleId, summary, jevResults, rating, engagement } = json;
 
     if (!articleId) {
       return NextResponse.json(
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
         summary: effectiveSummary,
         jevResults: jevResults || {},
         rating: effectiveRating,
+        engagement: engagement || undefined,
       });
 
       if (typeof streamResult?.toTextStreamResponse === 'function') {

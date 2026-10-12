@@ -1,5 +1,6 @@
 // src/app/read/[articleId]/page.tsx
 // Timed reading view: supports multi-part section picker for long papers & timed reading session
+// Engagement monitoring window is ALWAYS visible during reading — user can toggle camera on/off.
 
 'use client';
 
@@ -9,7 +10,9 @@ import { useAuth } from '@/components/auth-provider';
 import { ReadingTimer } from '@/components/reading-timer';
 import { SectionPicker } from '@/components/section-picker';
 import { DocumentReader } from '@/components/document-reader';
+import { WebcamEngagementMonitor } from '@/components/webcam-engagement-monitor';
 import { useTimer } from '@/hooks/use-timer';
+import { useEngagement } from '@/hooks/useEngagement';
 import { WORDS_PER_MINUTE, TIMER_BUFFER_SECONDS } from '@/lib/constants';
 import {
   BookOpen,
@@ -55,6 +58,9 @@ export default function ReadPage({ params }: PageProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Camera toggle — user can turn camera on/off but the monitor window always stays
+  const [cameraOn, setCameraOn] = useState(true);
 
   const isOwner = Boolean(
     article &&
@@ -166,18 +172,35 @@ export default function ReadPage({ params }: PageProps) {
     };
   }, [articleId, urlSectionTitle, idToken, loading]);
 
+  // Reading is active when not fetching, article loaded, and not selecting section
+  const isReadingActive = !fetching && !!article && !isSelectingSection;
+
+  // Engagement hook — active when reading is active AND camera is on
+  const {
+    videoRef: engagementVideoRef,
+    status: engagementStatus,
+    current: engagementCurrent,
+    getSummary: getEngagementSummary,
+  } = useEngagement(cameraOn && isReadingActive);
+
   const handleFinishReading = useCallback(() => {
     if (isNavigating) return;
     setIsNavigating(true);
+
+    // Capture engagement summary before navigating
+    try {
+      const summary = getEngagementSummary();
+      sessionStorage.setItem('readrecall_engagement_summary', JSON.stringify(summary));
+    } catch {
+      // ignore storage errors
+    }
+
     const targetTitle = activeSection?.title || urlSectionTitle;
     const query = targetTitle && targetTitle !== 'all' && targetTitle !== 'full'
       ? `?section=${encodeURIComponent(targetTitle)}`
       : '';
     router.push(`/write/${articleId}${query}`);
-  }, [articleId, activeSection, urlSectionTitle, router, isNavigating]);
-
-  // Timer only auto-starts if reading is active (not during section picker)
-  const isReadingActive = !fetching && !!article && !isSelectingSection;
+  }, [articleId, activeSection, urlSectionTitle, router, isNavigating, getEngagementSummary]);
 
   const timer = useTimer({
     totalSeconds: readingDuration,
@@ -222,6 +245,11 @@ export default function ReadPage({ params }: PageProps) {
   // Guard against copying
   const handleCopyPrevent = (e: React.ClipboardEvent) => {
     e.preventDefault();
+  };
+
+  // Toggle camera on/off
+  const handleToggleCamera = () => {
+    setCameraOn((prev) => !prev);
   };
 
   if (loading || fetching) {
@@ -391,8 +419,64 @@ export default function ReadPage({ params }: PageProps) {
     ? activeSection.wordCount
     : article.wordCount;
 
+  // Helper to render article content
+  const renderArticle = () => (
+    <article
+      onCopy={handleCopyPrevent}
+      onContextMenu={(e) => e.preventDefault()}
+      className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-10 text-slate-800 shadow-sm leading-relaxed font-serif text-lg selection:bg-indigo-50"
+    >
+      <header className="mb-8 border-b border-slate-100 pb-6 font-sans">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl font-sans">
+            {article.title}
+          </h1>
+          <div className="flex items-center gap-2 shrink-0">
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition font-sans"
+                title="Delete this custom document"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Delete</span>
+              </button>
+            )}
+            {article.sections && article.sections.length > 1 && (
+              <button
+                onClick={handleBackToSectionPicker}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition font-sans"
+              >
+                <Layers className="h-3.5 w-3.5 text-indigo-600" />
+                <span>All Parts</span>
+              </button>
+            )}
+          </div>
+        </div>
+        {activeSection && (
+          <div className="mt-2 inline-flex items-center gap-2 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200/60 font-sans">
+            <Sparkles className="h-3 w-3" />
+            <span>Current Section: {activeSection.title} ({activeSection.wordCount} words)</span>
+          </div>
+        )}
+        {article.authors && article.authors.length > 0 && (
+          <p className="mt-2 text-xs text-slate-500 font-sans">
+            By {article.authors.join(', ')} {article.year ? `(${article.year})` : ''}
+          </p>
+        )}
+      </header>
+
+      <DocumentReader
+        content={displayText}
+        title={article.title}
+        sectionTitle={activeSection?.title}
+      />
+    </article>
+  );
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 select-none">
+    <div className="mx-auto max-w-7xl px-4 py-8 select-none transition-all duration-300">
       {/* Delete Confirmation Modal for Active Reading Screen */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
@@ -457,125 +541,76 @@ export default function ReadPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Top sticky bar with timer */}
-      <div className="sticky top-20 z-20 mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white/90 p-4 backdrop-blur-md shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700 shrink-0">
-            <BookOpen className="h-4 w-4" />
-          </div>
-          <div>
-            <h1 className="text-sm font-semibold text-slate-900 line-clamp-1 max-w-[280px] sm:max-w-md">
-              {displayTitle}
-            </h1>
-            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+      {/* ALWAYS 2-COLUMN LAYOUT: Monitor + Article */}
+      <div className="lg:grid lg:grid-cols-12 lg:gap-8 items-start">
+        {/* Left Column: Live Webcam Monitor Card (Sticky on desktop) — ALWAYS VISIBLE */}
+        <div className="lg:col-span-5 xl:col-span-4 mb-6 lg:mb-0 lg:sticky lg:top-24">
+          <WebcamEngagementMonitor
+            videoRef={engagementVideoRef}
+            status={engagementStatus}
+            current={engagementCurrent}
+            articleTitle={displayTitle}
+            category={activeSection ? `SECTION: ${activeSection.title}` : 'ACTIVE RECALL SESSION'}
+            timeLeft={timer.timeLeft}
+            totalDuration={readingDuration}
+            cameraOn={cameraOn}
+            onToggleCamera={handleToggleCamera}
+            onFinishEarly={timer.finish}
+          />
+        </div>
+
+        {/* Right Column: Reading Document & Quiz Actions */}
+        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+          {/* Top article actions / parts picker */}
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
+            <div className="text-xs text-slate-500 font-medium">
               <span>{targetWordCount} words</span>
-              <span>•</span>
+              <span className="mx-2">•</span>
               <span>~{Math.ceil(readingDuration / 60)} min read</span>
-              {article.sections && article.sections.length > 1 && (
-                <>
-                  <span>•</span>
-                  <button
-                    onClick={handleBackToSectionPicker}
-                    className="text-indigo-600 hover:text-indigo-750 font-semibold underline underline-offset-2"
-                  >
-                    Switch Part ({article.sections.length} total)
-                  </button>
-                </>
-              )}
+            </div>
+            {article.sections && article.sections.length > 1 && (
+              <button
+                onClick={handleBackToSectionPicker}
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold underline underline-offset-2"
+              >
+                Switch Part ({article.sections.length} total)
+              </button>
+            )}
+          </div>
+
+          {/* Gentle educational disclaimer */}
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 text-xs text-amber-900 leading-relaxed">
+            <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+            <div>
+              <span className="font-semibold">Active Recall Training:</span> When time runs out, the text will be hidden and you&apos;ll summarize key concepts from memory. Text copying is disabled to stimulate genuine cognitive retention.
             </div>
           </div>
-        </div>
 
-        <ReadingTimer
-          timeLeft={timer.timeLeft}
-          totalDuration={readingDuration}
-          onFinishEarly={timer.finish}
-        />
-      </div>
+          {/* Article Content Area */}
+          {renderArticle()}
 
-      {/* Gentle educational disclaimer */}
-      <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 text-xs text-amber-900 leading-relaxed">
-        <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-        <div>
-          <span className="font-semibold">Active Recall Training:</span> When time runs out, the text will be hidden and you&apos;ll summarize key concepts from memory. Text copying is disabled to stimulate genuine cognitive retention.
-        </div>
-      </div>
+          {/* Bottom Action: Big green Quiz / Summary button */}
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100">
+            {article.sections && article.sections.length > 1 ? (
+              <button
+                onClick={handleBackToSectionPicker}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition"
+              >
+                <Layers className="h-4 w-4 text-slate-500" />
+                <span>Choose Another Part</span>
+              </button>
+            ) : (
+              <div />
+            )}
 
-      {/* Article Content Area */}
-      <article
-        onCopy={handleCopyPrevent}
-        onContextMenu={(e) => e.preventDefault()}
-        className="rounded-2xl border border-slate-200/90 bg-white p-8 sm:p-12 text-slate-800 shadow-sm leading-relaxed font-serif text-lg selection:bg-indigo-50"
-      >
-        <header className="mb-8 border-b border-slate-100 pb-6 font-sans">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl font-sans">
-              {article.title}
-            </h1>
-            <div className="flex items-center gap-2 shrink-0">
-              {isOwner && (
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition font-sans"
-                  title="Delete this custom document"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Delete</span>
-                </button>
-              )}
-              {article.sections && article.sections.length > 1 && (
-                <button
-                  onClick={handleBackToSectionPicker}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition font-sans"
-                >
-                  <Layers className="h-3.5 w-3.5 text-indigo-600" />
-                  <span>All Parts</span>
-                </button>
-              )}
-            </div>
+            <button
+              onClick={timer.finish}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-7 py-3.5 font-bold text-white shadow-md hover:shadow-lg transition active:scale-[0.99] text-sm"
+            >
+              <span>Finished Reading — Take Recall Quiz →</span>
+            </button>
           </div>
-          {activeSection && (
-            <div className="mt-2 inline-flex items-center gap-2 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200/60 font-sans">
-              <Sparkles className="h-3 w-3" />
-              <span>Current Section: {activeSection.title} ({activeSection.wordCount} words)</span>
-            </div>
-          )}
-          {article.authors && article.authors.length > 0 && (
-            <p className="mt-2 text-xs text-slate-500 font-sans">
-              By {article.authors.join(', ')} {article.year ? `(${article.year})` : ''}
-            </p>
-          )}
-        </header>
-
-        <DocumentReader
-          content={displayText}
-          title={article.title}
-          sectionTitle={activeSection?.title}
-        />
-      </article>
-
-      {/* Bottom Action */}
-      <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-        {article.sections && article.sections.length > 1 ? (
-          <button
-            onClick={handleBackToSectionPicker}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition"
-          >
-            <Layers className="h-4 w-4 text-slate-500" />
-            <span>Choose Another Part</span>
-          </button>
-        ) : (
-          <div />
-        )}
-
-        <button
-          onClick={timer.finish}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white shadow-sm hover:bg-slate-800 transition"
-        >
-          <span>Finished Reading — Write Summary</span>
-          <ArrowRight className="h-4 w-4" />
-        </button>
+        </div>
       </div>
     </div>
   );

@@ -113,7 +113,7 @@ export default function ProfilePage() {
     };
 
     loadProfileData();
-  }, [idToken]);
+  }, [idToken, user?.uid]);
 
   const handleTogglePrivacy = async (checked: boolean) => {
     if (!idToken) return;

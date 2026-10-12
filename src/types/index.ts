@@ -47,6 +47,26 @@ export interface User {
   updatedAt: string;
 }
 
+export interface EngagementTimelinePoint {
+  tSec: number;
+  focused: boolean;
+  emotion: string;
+}
+
+export interface EngagementSummary {
+  focusPercent: number;
+  distractedSeconds: number;
+  emotionPercent: {
+    enjoying: number;
+    confused: number;
+    bored: number;
+    neutral: number;
+  };
+  confusedMoments: number;
+  boredMoments: number;
+  timeline?: EngagementTimelinePoint[];
+}
+
 export interface Attempt {
   id: string;
   userId: string;
@@ -62,6 +82,7 @@ export interface Attempt {
   retryOf?: string;
   createdAt: string;
   jevResults?: Record<string, any>;
+  engagement?: EngagementSummary;
 }
 
 export interface DimensionScores {
@@ -118,6 +139,8 @@ export interface EvaluateRequest {
   articleId: string;
   summary: string;
   section?: string;
+  retryOf?: string;
+  engagement?: EngagementSummary;
 }
 
 export interface EvaluateResponse {
@@ -128,6 +151,7 @@ export interface EvaluateResponse {
   jevModel: string;
   latency: number;
   attemptId: string;
+  engagement?: EngagementSummary;
 }
 
 export interface FeedbackRequest {
@@ -135,6 +159,7 @@ export interface FeedbackRequest {
   summary: string;
   jevResults: Record<string, unknown>;
   rating: number;
+  engagement?: EngagementSummary;
 }
 
 export interface UploadSignResponse {
