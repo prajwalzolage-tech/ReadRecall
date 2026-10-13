@@ -164,37 +164,37 @@ export default function WritePage({ params }: PageProps) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:py-10 sm:px-6">
       {/* Header */}
-      <div className="mb-8 pb-6 border-b border-slate-200/80">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-600">
-          <Brain className="h-4 w-4" />
+      <div className="mb-6 sm:mb-8 pb-5 sm:pb-6 border-b border-slate-200/80">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-600">
+          <Brain className="h-4 w-4 shrink-0" />
           <span>Active Recall Phase</span>
           {retryOf && (
-            <span className="ml-2 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+            <span className="rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
               Revision Session
             </span>
           )}
         </div>
 
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h1 className="mt-2 text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">
           Summarize &apos;{metadata?.title}&apos;
         </h1>
 
         {sectionTitle && (
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-xs sm:text-sm text-slate-600">
             Target section: <span className="text-indigo-600 font-semibold">{sectionTitle}</span>
           </p>
         )}
 
-        <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+        <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
           The source text is now hidden. In your own words, synthesize the core thesis, supporting arguments, and practical significance.
         </p>
       </div>
 
       {/* Error alert */}
       {error && (
-        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs sm:text-sm text-rose-700">
           <AlertCircle className="h-5 w-5 shrink-0 text-rose-600" />
           <span>{error}</span>
         </div>
@@ -208,17 +208,17 @@ export default function WritePage({ params }: PageProps) {
           disabled={submitting}
         />
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-          <p className="text-xs text-slate-500 max-w-md">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
+          <p className="text-xs text-slate-500 max-w-md text-center sm:text-left">
             Instant 1–10 multidimensional evaluation evaluated by Jev with streamed AI tutor coaching.
           </p>
 
           <button
             type="submit"
             disabled={!canSubmit}
-            className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition shadow-sm ${
+            className={`w-full sm:w-auto inline-flex justify-center items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold transition shadow-sm ${
               canSubmit
-                ? 'bg-slate-900 text-white hover:bg-slate-800 cursor-pointer'
+                ? 'bg-slate-900 text-white hover:bg-slate-800 cursor-pointer active:scale-[0.99]'
                 : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
             }`}
           >

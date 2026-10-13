@@ -41,30 +41,30 @@ export function RevealView({
   });
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm">
+    <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-8 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
-          <h3 className="text-lg font-bold text-slate-900 tracking-tight">Review & Key Point Analysis</h3>
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Review &amp; Key Point Analysis</h3>
           <p className="text-xs text-slate-500 mt-0.5">
             Compare your active recall against verified key ideas and identify blind spots
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setIsRevealed(!isRevealed)}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition"
+            className="inline-flex justify-center items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 transition active:scale-[0.99]"
           >
             {isRevealed ? (
               <>
                 <EyeOff className="h-4 w-4 text-slate-500" />
-                Hide Source Article
+                <span>Hide Source Article</span>
               </>
             ) : (
               <>
                 <Eye className="h-4 w-4 text-slate-500" />
-                Reveal Source Text
+                <span>Reveal Source Text</span>
               </>
             )}
           </button>
@@ -72,10 +72,10 @@ export function RevealView({
           <button
             type="button"
             onClick={onRetry}
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+            className="inline-flex justify-center items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 transition active:scale-[0.99]"
           >
             <RotateCcw className="h-4 w-4" />
-            Revise & Resubmit
+            <span>Revise &amp; Resubmit</span>
           </button>
         </div>
       </div>

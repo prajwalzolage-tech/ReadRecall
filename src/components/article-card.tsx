@@ -65,10 +65,10 @@ export function ArticleCard({
   return (
     <div className="relative group block h-full">
       <Link href={`/read/${article.id}`} className="block h-full">
-        <div className="relative flex flex-col justify-between h-full overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-6 transition-all duration-200 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5">
+        <div className="relative flex flex-col justify-between h-full overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 transition-all duration-200 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5">
           {/* Top Row: Badges & Delete Button */}
           <div>
-            <div className="mb-3.5 flex items-center justify-between gap-2">
+            <div className="mb-3 flex items-start justify-between gap-2">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span
                   className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-semibold tracking-wide border ${
@@ -108,7 +108,7 @@ export function ArticleCard({
                     e.stopPropagation();
                     setConfirming(true);
                   }}
-                  className="rounded-lg p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition z-10"
+                  className="rounded-lg p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition z-10 shrink-0"
                   title="Delete uploaded document"
                   aria-label="Delete document"
                 >
@@ -118,20 +118,20 @@ export function ArticleCard({
             </div>
 
             {/* Title */}
-            <h3 className="mb-3 text-lg font-semibold text-slate-900 leading-snug tracking-tight transition-colors group-hover:text-indigo-600">
+            <h3 className="mb-3 text-base sm:text-lg font-semibold text-slate-900 leading-snug tracking-tight transition-colors group-hover:text-indigo-600 line-clamp-2">
               {article.title}
             </h3>
           </div>
 
           {/* Meta */}
-          <div className="flex items-center justify-between pt-4 border-t border-slate-100 text-xs text-slate-500 font-medium">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-3.5 border-t border-slate-100 text-xs text-slate-500 font-medium">
+            <div className="flex flex-wrap items-center gap-2">
               <span>{article.wordCount} words</span>
               <span>•</span>
               {article.sectionCount && article.sectionCount > 1 ? (
-                <span className="text-indigo-600 font-semibold">{article.sectionCount} Reading Parts</span>
+                <span className="text-indigo-600 font-semibold">{article.sectionCount} Parts</span>
               ) : (
-                <span>~{readingTime} min read</span>
+                <span>~{readingTime} min</span>
               )}
             </div>
 
@@ -160,7 +160,7 @@ export function ArticleCard({
             e.preventDefault();
             e.stopPropagation();
           }}
-          className="absolute inset-0 z-20 flex flex-col justify-between rounded-2xl border border-rose-200 bg-white/95 p-6 backdrop-blur-xs shadow-lg animate-in fade-in zoom-in-95 duration-150"
+          className="absolute inset-0 z-20 flex flex-col justify-between rounded-2xl border border-rose-200 bg-white/95 p-4 sm:p-6 backdrop-blur-xs shadow-lg animate-in fade-in zoom-in-95 duration-150"
         >
           <div>
             <div className="flex items-center gap-2 text-rose-600 text-sm font-bold">

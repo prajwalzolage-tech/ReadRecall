@@ -44,21 +44,21 @@ export function TrendChart({ data, className = '' }: TrendChartProps) {
   }));
 
   return (
-    <div className={`w-full h-64 sm:h-72 ${className}`}>
+    <div className={`w-full h-60 sm:h-72 min-h-[240px] ${className}`}>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
+        <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
           <XAxis
             dataKey="name"
             stroke="#cbd5e1"
-            tick={{ fill: '#64748b', fontSize: 11 }}
+            tick={{ fill: '#64748b', fontSize: 10 }}
             axisLine={{ stroke: '#e2e8f0' }}
           />
           <YAxis
             domain={[1, 10]}
             ticks={[1, 2, 4, 6, 8, 10]}
             stroke="#cbd5e1"
-            tick={{ fill: '#64748b', fontSize: 11 }}
+            tick={{ fill: '#64748b', fontSize: 10 }}
             axisLine={{ stroke: '#e2e8f0' }}
           />
           <Tooltip

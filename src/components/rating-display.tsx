@@ -81,12 +81,12 @@ export function RatingDisplay({
 
   return (
     <div
-      className={`rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm ${className}`}
+      className={`rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-8 shadow-sm ${className}`}
     >
       {/* Top Header & Score Reveal */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 border-b border-slate-100 pb-6">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-5 sm:gap-6 border-b border-slate-100 pb-5 sm:pb-6">
         <div className="text-center sm:text-left">
-          <div className="flex items-center justify-center sm:justify-start gap-2">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider ${tierStyle.badge}`}
             >
@@ -100,8 +100,8 @@ export function RatingDisplay({
               </span>
             )}
           </div>
-          <h2 className="mt-2 text-xl font-bold text-slate-900 tracking-tight">Comprehension Rating</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h2 className="mt-2 text-lg sm:text-xl font-bold text-slate-900 tracking-tight">Comprehension Rating</h2>
+          <p className="text-xs text-slate-500 mt-0.5 max-w-md">
             Calibrated synthesis of key idea coverage, factual faithfulness, and clarity
           </p>
         </div>
@@ -113,11 +113,11 @@ export function RatingDisplay({
           />
           <div className="relative flex items-baseline gap-1">
             <span
-              className={`font-mono text-6xl sm:text-7xl font-extrabold tracking-tighter ${tierStyle.text}`}
+              className={`font-mono text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter ${tierStyle.text}`}
             >
               {animatedRating}
             </span>
-            <span className="font-mono text-2xl font-bold text-slate-400">/10</span>
+            <span className="font-mono text-xl sm:text-2xl font-bold text-slate-400">/10</span>
           </div>
         </div>
       </div>

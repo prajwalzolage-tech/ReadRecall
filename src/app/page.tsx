@@ -130,47 +130,47 @@ export default function HomePage() {
   if (!user) return null;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:py-10 sm:px-6 lg:px-8">
       {/* Hero Header */}
-      <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200/80">
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
-            Active Recall & Reading Comprehension
+      <div className="mb-8 sm:mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200/80">
+        <div className="space-y-1">
+          <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-indigo-600">
+            Active Recall &amp; Reading Comprehension
           </span>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">
             Choose an Article
           </h1>
-          <p className="mt-2 text-sm text-slate-600 max-w-xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-relaxed pt-1">
             Read a timed technical paper, then write a summary purely from memory.
             Evaluated against key ideas by Jev with instant streamed coaching.
           </p>
         </div>
 
         {/* Quick Actions */}
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full md:w-auto">
           <Link
             href="/upload"
-            className="inline-flex flex-1 md:flex-none justify-center items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition"
+            className="inline-flex justify-center items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 hover:text-slate-900 transition active:scale-[0.98]"
           >
             <Upload className="h-4 w-4 text-slate-500" />
             Upload PDF / Doc
           </Link>
           <Link
             href="/search"
-            className="inline-flex flex-1 md:flex-none justify-center items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition"
+            className="inline-flex justify-center items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 hover:text-slate-900 transition active:scale-[0.98]"
           >
             <Search className="h-4 w-4 text-slate-500" />
-            Search arXiv
+            Search arXiv Papers
           </Link>
         </div>
       </div>
 
       {/* Adaptive Recommendation Card */}
       {recommendation?.recommendedArticle && !fetching && (
-        <div className="mb-10 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/60 via-purple-50/30 to-white p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
+        <div className="mb-8 sm:mb-10 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-purple-50/40 to-white p-5 sm:p-7 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 sm:gap-6">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-0.5 text-xs font-semibold text-indigo-700">
                   <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
                   Recommended Next ({recommendation.difficulty.toUpperCase()})
@@ -179,7 +179,7 @@ export default function HomePage() {
                   {recommendation.recommendedArticle.wordCount} words
                 </span>
               </div>
-              <h2 className="text-xl font-bold text-slate-900 pt-1 tracking-tight">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
                 {recommendation.recommendedArticle.title}
               </h2>
               <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
@@ -191,9 +191,9 @@ export default function HomePage() {
               onClick={() =>
                 router.push(`/read/${recommendation.recommendedArticle!.id}`)
               }
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition shrink-0"
+              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition shrink-0 active:scale-[0.98]"
             >
-              Start Session
+              <span>Start Session</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
@@ -209,11 +209,11 @@ export default function HomePage() {
 
       {/* Loading skeleton */}
       {fetching && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="h-40 animate-pulse rounded-2xl border border-slate-200 bg-white"
+              className="h-44 animate-pulse rounded-2xl border border-slate-200 bg-white"
             />
           ))}
         </div>
@@ -234,51 +234,53 @@ export default function HomePage() {
 
       {/* Articles Filter Tabs & Grid */}
       {!fetching && articles.length > 0 && (
-        <div className="space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-1 text-xs">
-              <button
-                type="button"
-                onClick={() => setFilterTab('all')}
-                className={`rounded-lg px-3.5 py-1.5 font-semibold transition ${
-                  filterTab === 'all'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                All Papers ({articles.length})
-              </button>
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+            {/* Filter Tabs (Horizontal scroll on narrow mobile) */}
+            <div className="overflow-x-auto no-scrollbar -mx-1 px-1 py-0.5">
+              <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-1 text-xs w-max">
+                <button
+                  type="button"
+                  onClick={() => setFilterTab('all')}
+                  className={`rounded-lg px-3 py-1.5 font-semibold transition shrink-0 ${
+                    filterTab === 'all'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Papers ({articles.length})
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setFilterTab('curated')}
-                className={`rounded-lg px-3.5 py-1.5 font-semibold transition ${
-                  filterTab === 'curated'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Curated ({curatedCount})
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterTab('curated')}
+                  className={`rounded-lg px-3 py-1.5 font-semibold transition shrink-0 ${
+                    filterTab === 'curated'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Curated ({curatedCount})
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setFilterTab('uploads')}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 font-semibold transition ${
-                  filterTab === 'uploads'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>My Uploads</span>
-                <span className="rounded-full bg-indigo-50 border border-indigo-100 px-1.5 py-0.2 text-[10px] text-indigo-700 font-bold">
-                  {uploadCount}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterTab('uploads')}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition shrink-0 ${
+                    filterTab === 'uploads'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>My Uploads</span>
+                  <span className="rounded-full bg-indigo-50 border border-indigo-100 px-1.5 py-0.2 text-[10px] text-indigo-700 font-bold">
+                    {uploadCount}
+                  </span>
+                </button>
+              </div>
             </div>
 
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 font-medium">
               Select any paper to begin timed reading
             </span>
           </div>

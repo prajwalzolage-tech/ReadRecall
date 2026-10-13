@@ -4,6 +4,26 @@
 
 'use client';
 
+// Suppress benign TensorFlow Lite / XNNPACK / MediaPipe C++ info messages routed to console.error
+if (typeof window !== 'undefined' && !(window as any).__tflite_log_filter_installed) {
+  (window as any).__tflite_log_filter_installed = true;
+  const originalError = console.error;
+  console.error = function (...args: any[]) {
+    const msg = typeof args[0] === 'string' ? args[0] : '';
+    if (
+      msg.includes('XNNPACK') ||
+      msg.startsWith('INFO:') ||
+      msg.includes('Created TensorFlow Lite') ||
+      msg.includes('TensorFlow Lite delegate')
+    ) {
+      // Re-route informational C++ runtime logs to console.info to prevent Next.js dev error overlay
+      console.info(...args);
+      return;
+    }
+    originalError.apply(console, args);
+  };
+}
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   classifyFrame,
@@ -216,7 +236,12 @@ export function useEngagement(active: boolean): UseEngagementReturn {
         timerIntervalRef.current = setInterval(() => {
           const video = videoRef.current;
           if (!video || !landmarkerRef.current) return;
-          if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || video.paused) {
+          if (
+            video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
+            video.paused ||
+            video.videoWidth === 0 ||
+            video.videoHeight === 0
+          ) {
             return;
           }
 
@@ -234,8 +259,9 @@ export function useEngagement(active: boolean): UseEngagementReturn {
           try {
             results = landmarkerRef.current.detectForVideo(video, timestamp);
           } catch (detErr) {
+            const errStr = String(detErr);
             // Suppress non-critical detection errors (e.g. XNNPACK delegate info logs)
-            if (String(detErr).indexOf('INFO:') === -1) {
+            if (!errStr.includes('INFO:') && !errStr.includes('XNNPACK')) {
               console.warn('[useEngagement] Detection error:', detErr);
             }
             return;

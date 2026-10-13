@@ -30,18 +30,18 @@ export function RadarChart({ scores, className = '' }: RadarChartProps) {
   ];
 
   return (
-    <div className={`w-full h-64 sm:h-72 ${className}`}>
+    <div className={`w-full h-60 sm:h-72 min-h-[240px] ${className}`}>
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsRadarChart cx="50%" cy="50%" outerRadius="75%" data={data}>
+        <RechartsRadarChart cx="50%" cy="50%" outerRadius="68%" data={data}>
           <PolarGrid stroke="#e2e8f0" />
           <PolarAngleAxis
             dataKey="subject"
-            tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }}
+            tick={{ fill: '#475569', fontSize: 10, fontWeight: 600 }}
           />
           <PolarRadiusAxis
             angle={30}
             domain={[0, 100]}
-            tick={{ fill: '#94a3b8', fontSize: 10 }}
+            tick={{ fill: '#94a3b8', fontSize: 9 }}
             stroke="#e2e8f0"
           />
           <Radar

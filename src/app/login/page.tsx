@@ -92,14 +92,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#fafaf9] p-4">
-      <div className="w-full max-w-md space-y-8">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-[#fafaf9] px-4 py-8">
+      <div className="w-full max-w-md space-y-6 sm:space-y-8">
         {/* Logo & Tagline */}
         <div className="text-center">
           <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 shadow-sm">
             <span className="text-base font-bold text-white">R</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
             Read<span className="text-indigo-600">Recall</span>
           </h1>
           <p className="mt-1.5 text-xs text-slate-500 font-medium">
@@ -108,7 +108,7 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-8 sm:p-10 shadow-sm">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm">
           <h2 className="mb-6 text-center text-lg font-bold text-slate-900 tracking-tight">
             {isSignUp ? 'Create your account' : 'Welcome back'}
           </h2>

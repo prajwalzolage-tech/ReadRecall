@@ -43,6 +43,8 @@ export const viewport: Viewport = {
   themeColor: '#4f46e5',
   width: 'device-width',
   initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -55,10 +57,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-[#fafaf9] text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
+      <body className="flex min-h-full flex-col bg-[#fafaf9] text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
         <AuthProvider>
           <NavBar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 w-full overflow-x-hidden">{children}</main>
         </AuthProvider>
         <script
           dangerouslySetInnerHTML={{

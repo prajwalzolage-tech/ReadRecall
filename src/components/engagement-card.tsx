@@ -120,10 +120,10 @@ export function EngagementCard({ engagement }: EngagementCardProps) {
   const totalTrackedSec = timeline.length > 0 ? timeline[timeline.length - 1].tSec + 1 : distractedSeconds;
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm space-y-5">
+    <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-8 shadow-sm space-y-5">
       {/* Header */}
       <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 shrink-0">
           <Eye className="h-4 w-4 text-indigo-600" />
         </div>
         <div>
@@ -137,23 +137,23 @@ export function EngagementCard({ engagement }: EngagementCardProps) {
       </div>
 
       {/* Focus & distraction summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
         <div
-          className={`rounded-xl border p-3.5 text-center ${focusBg}`}
+          className={`rounded-xl border p-2.5 sm:p-3.5 text-center ${focusBg}`}
         >
-          <p className="text-xs font-medium text-slate-500 mb-0.5">Focus</p>
-          <p className={`text-xl font-bold ${focusColor}`}>
+          <p className="text-[11px] sm:text-xs font-medium text-slate-500 mb-0.5">Focus</p>
+          <p className={`text-lg sm:text-xl font-bold ${focusColor}`}>
             {focusPercent}%
           </p>
           <p className={`text-[10px] font-medium mt-0.5 ${focusColor}`}>
             {focusLabel}
           </p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-center">
-          <p className="text-xs font-medium text-slate-500 mb-0.5">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3.5 text-center">
+          <p className="text-[11px] sm:text-xs font-medium text-slate-500 mb-0.5">
             Distracted
           </p>
-          <p className="text-xl font-bold text-slate-700">
+          <p className="text-lg sm:text-xl font-bold text-slate-700">
             {distractedSeconds}s
           </p>
           {totalTrackedSec > 0 && (
@@ -162,26 +162,26 @@ export function EngagementCard({ engagement }: EngagementCardProps) {
             </p>
           )}
         </div>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-center">
-          <p className="text-xs font-medium text-slate-500 mb-0.5">
-            Confused Moments
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-2.5 sm:p-3.5 text-center">
+          <p className="text-[11px] sm:text-xs font-medium text-slate-500 mb-0.5">
+            Confused
           </p>
-          <p className="text-xl font-bold text-amber-600">
+          <p className="text-lg sm:text-xl font-bold text-amber-600">
             {confusedMoments}
           </p>
           <p className="text-[10px] text-amber-500 mt-0.5">
-            {confusedMoments === 0 ? 'None detected' : confusedMoments === 1 ? 'episode' : 'episodes'}
+            {confusedMoments === 0 ? 'None' : confusedMoments === 1 ? '1 episode' : `${confusedMoments} episodes`}
           </p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-center">
-          <p className="text-xs font-medium text-slate-500 mb-0.5">
-            Bored Moments
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3.5 text-center">
+          <p className="text-[11px] sm:text-xs font-medium text-slate-500 mb-0.5">
+            Bored
           </p>
-          <p className="text-xl font-bold text-slate-600">
+          <p className="text-lg sm:text-xl font-bold text-slate-600">
             {boredMoments}
           </p>
           <p className="text-[10px] text-slate-400 mt-0.5">
-            {boredMoments === 0 ? 'None detected' : boredMoments === 1 ? 'episode' : 'episodes'}
+            {boredMoments === 0 ? 'None' : boredMoments === 1 ? '1 episode' : `${boredMoments} episodes`}
           </p>
         </div>
       </div>

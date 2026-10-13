@@ -209,80 +209,82 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 space-y-8">
+    <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8">
       {/* Profile Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
-        <div className="flex items-center gap-3.5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
-            <User className="h-6 w-6" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5 sm:pb-6">
+        <div className="flex items-center gap-3 sm:gap-3.5">
+          <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-xs shrink-0">
+            <User className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 truncate">
               {user?.displayName || user?.email?.split('@')[0]}
             </h1>
-            <p className="text-xs text-slate-500">{user?.email}</p>
+            <p className="text-xs text-slate-500 truncate">{user?.email}</p>
           </div>
         </div>
 
         {/* Privacy Toggle Card */}
-        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm">
-          <Shield className="h-4 w-4 text-slate-600" />
-          <div className="text-xs">
-            <span className="font-semibold text-slate-800 block">Strict Privacy Mode</span>
-            <span className="text-slate-500">Store comprehension analytics only (omit raw summary text)</span>
+        <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 shadow-2xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Shield className="h-4 w-4 text-slate-600 shrink-0" />
+            <div className="text-xs">
+              <span className="font-semibold text-slate-800 block">Strict Privacy</span>
+              <span className="text-slate-500 text-[11px] hidden sm:block">Analytics only (omit raw summary text)</span>
+            </div>
           </div>
           <input
             type="checkbox"
             checked={privacySummary}
             onChange={(e) => handleTogglePrivacy(e.target.checked)}
             disabled={savingPrivacy}
-            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer shrink-0 ml-2"
           />
         </div>
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid gap-5 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm">
+      <div className="grid gap-3 sm:gap-5 grid-cols-1 sm:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-4.5 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Recalls</span>
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">Total Recalls</span>
             <BookOpen className="h-4 w-4 text-slate-400" />
           </div>
-          <div className="mt-3 text-3xl font-mono font-bold text-slate-900">
+          <div className="mt-2.5 sm:mt-3 text-2xl sm:text-3xl font-mono font-bold text-slate-900">
             {totalAttempts}
           </div>
-          <p className="mt-1 text-xs text-slate-500">Completed reading sessions</p>
+          <p className="mt-0.5 sm:mt-1 text-[11px] sm:text-xs text-slate-500">Completed reading sessions</p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-4.5 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">Average Rating</span>
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">Average Rating</span>
             <TrendingUp className="h-4 w-4 text-emerald-600" />
           </div>
-          <div className="mt-3 text-3xl font-mono font-bold text-emerald-700">
+          <div className="mt-2.5 sm:mt-3 text-2xl sm:text-3xl font-mono font-bold text-emerald-700">
             {avgRating} <span className="text-sm font-normal text-slate-400">/ 10</span>
           </div>
-          <p className="mt-1 text-xs text-slate-500">Overall comprehension accuracy</p>
+          <p className="mt-0.5 sm:mt-1 text-[11px] sm:text-xs text-slate-500">Overall comprehension accuracy</p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-4.5 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">Personal Best</span>
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">Personal Best</span>
             <Award className="h-4 w-4 text-amber-600" />
           </div>
-          <div className="mt-3 text-3xl font-mono font-bold text-amber-700">
+          <div className="mt-2.5 sm:mt-3 text-2xl sm:text-3xl font-mono font-bold text-amber-700">
             {highestRating} <span className="text-sm font-normal text-slate-400">/ 10</span>
           </div>
-          <p className="mt-1 text-xs text-slate-500">Highest single attempt score</p>
+          <p className="mt-0.5 sm:mt-1 text-[11px] sm:text-xs text-slate-500">Highest single attempt score</p>
         </div>
       </div>
 
       {/* Visual Analytics Grid: Radar + Trend */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-5 sm:gap-6 lg:grid-cols-2">
         {/* Radar Chart */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm">
-          <div className="mb-4">
-            <h2 className="text-base font-bold text-slate-900 tracking-tight">Comprehension Profile</h2>
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-4.5 sm:p-6 shadow-sm">
+          <div className="mb-3 sm:mb-4">
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">Comprehension Profile</h2>
             <p className="text-xs text-slate-500">
               Averaged multidimensional radar across last 10 sessions
             </p>
@@ -291,9 +293,9 @@ export default function ProfilePage() {
         </div>
 
         {/* Trend Chart */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm">
-          <div className="mb-4">
-            <h2 className="text-base font-bold text-slate-900 tracking-tight">Progress Trajectory</h2>
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-4.5 sm:p-6 shadow-sm">
+          <div className="mb-3 sm:mb-4">
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">Progress Trajectory</h2>
             <p className="text-xs text-slate-500">
               Chronological 1–10 comprehension rating improvement
             </p>

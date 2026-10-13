@@ -36,19 +36,19 @@ export function SummaryEditor({
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
           placeholder={placeholder}
-          rows={9}
+          rows={8}
           aria-label="Article summary"
           aria-describedby="summary-counter-help"
-          className="w-full resize-y rounded-2xl border border-slate-200 bg-white p-5 text-base text-slate-800 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-4 focus:ring-slate-100 shadow-sm disabled:opacity-50 transition leading-relaxed font-sans"
+          className="w-full resize-y rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 text-sm sm:text-base text-slate-800 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-4 focus:ring-slate-100 shadow-xs disabled:opacity-50 transition leading-relaxed font-sans min-h-[190px] sm:min-h-[240px]"
         />
       </div>
 
       {/* Status Bar */}
       <div
         id="summary-counter-help"
-        className="flex flex-wrap items-center justify-between gap-3 text-xs"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs pt-0.5"
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Word count badge */}
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border transition ${
@@ -68,14 +68,14 @@ export function SummaryEditor({
           </span>
 
           {/* Guide notes */}
-          <span className="text-slate-500 font-medium">
-            Min: {minWords} words • Recommended: {suggestedMin}–{suggestedMax} words
+          <span className="text-slate-500 font-medium text-[11px] sm:text-xs">
+            Min: {minWords} • Rec: {suggestedMin}–{suggestedMax} words
           </span>
         </div>
 
         {/* Character count */}
         <div
-          className={`font-mono text-xs ${
+          className={`font-mono text-xs self-end sm:self-auto ${
             isOverCharLimit ? 'text-rose-600 font-bold' : 'text-slate-400'
           }`}
         >

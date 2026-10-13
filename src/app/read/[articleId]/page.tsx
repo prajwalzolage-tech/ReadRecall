@@ -62,6 +62,17 @@ export default function ReadPage({ params }: PageProps) {
   // Camera toggle — user can turn camera on/off but the monitor window always stays
   const [cameraOn, setCameraOn] = useState(true);
 
+  // Screen size detection for responsive monitor default
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileScreen(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const isOwner = Boolean(
     article &&
       article.source !== 'curated' &&
@@ -419,19 +430,21 @@ export default function ReadPage({ params }: PageProps) {
     ? activeSection.wordCount
     : article.wordCount;
 
+
+
   // Helper to render article content
   const renderArticle = () => (
     <article
       onCopy={handleCopyPrevent}
       onContextMenu={(e) => e.preventDefault()}
-      className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-10 text-slate-800 shadow-sm leading-relaxed font-serif text-lg selection:bg-indigo-50"
+      className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-8 lg:p-10 text-slate-800 shadow-sm leading-relaxed font-serif text-base sm:text-lg selection:bg-indigo-50"
     >
-      <header className="mb-8 border-b border-slate-100 pb-6 font-sans">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl font-sans">
+      <header className="mb-6 sm:mb-8 border-b border-slate-100 pb-5 sm:pb-6 font-sans">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 font-sans">
             {article.title}
           </h1>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
             {isOwner && (
               <button
                 type="button"
@@ -440,7 +453,7 @@ export default function ReadPage({ params }: PageProps) {
                 title="Delete this custom document"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Delete</span>
+                <span>Delete</span>
               </button>
             )}
             {article.sections && article.sections.length > 1 && (
@@ -455,8 +468,8 @@ export default function ReadPage({ params }: PageProps) {
           </div>
         </div>
         {activeSection && (
-          <div className="mt-2 inline-flex items-center gap-2 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200/60 font-sans">
-            <Sparkles className="h-3 w-3" />
+          <div className="mt-2.5 inline-flex flex-wrap items-center gap-2 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200/60 font-sans">
+            <Sparkles className="h-3 w-3 shrink-0" />
             <span>Current Section: {activeSection.title} ({activeSection.wordCount} words)</span>
           </div>
         )}
@@ -476,7 +489,7 @@ export default function ReadPage({ params }: PageProps) {
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 select-none transition-all duration-300">
+    <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-5 sm:py-8 select-none transition-all duration-300 pb-20 lg:pb-8">
       {/* Delete Confirmation Modal for Active Reading Screen */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
@@ -528,8 +541,8 @@ export default function ReadPage({ params }: PageProps) {
 
       {/* Expiry / completion transition overlay */}
       {isNavigating && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-xs">
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-xs p-4">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl text-center max-w-sm">
             <div className="h-7 w-7 animate-spin rounded-full border-3 border-slate-900 border-t-transparent" />
             <p className="text-base font-semibold text-slate-900">
               Time is up! Opening summary page...
@@ -541,11 +554,12 @@ export default function ReadPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* ALWAYS 2-COLUMN LAYOUT: Monitor + Article */}
+      {/* 2-COLUMN LAYOUT on desktop / stacked with compact monitor on mobile */}
       <div className="lg:grid lg:grid-cols-12 lg:gap-8 items-start">
-        {/* Left Column: Live Webcam Monitor Card (Sticky on desktop) — ALWAYS VISIBLE */}
-        <div className="lg:col-span-5 xl:col-span-4 mb-6 lg:mb-0 lg:sticky lg:top-24">
+        {/* Left Column: Live Webcam Monitor Card (Sticky on desktop, smart compact on mobile) */}
+        <div className="lg:col-span-5 xl:col-span-4 mb-5 lg:mb-0 lg:sticky lg:top-24">
           <WebcamEngagementMonitor
+            key={`monitor-${isMobileScreen ? 'mobile' : 'desktop'}`}
             videoRef={engagementVideoRef}
             status={engagementStatus}
             current={engagementCurrent}
@@ -556,11 +570,12 @@ export default function ReadPage({ params }: PageProps) {
             cameraOn={cameraOn}
             onToggleCamera={handleToggleCamera}
             onFinishEarly={timer.finish}
+            defaultMinimized={isMobileScreen}
           />
         </div>
 
         {/* Right Column: Reading Document & Quiz Actions */}
-        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+        <div className="lg:col-span-7 xl:col-span-8 space-y-5 sm:space-y-6">
           {/* Top article actions / parts picker */}
           <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
             <div className="text-xs text-slate-500 font-medium">
@@ -579,7 +594,7 @@ export default function ReadPage({ params }: PageProps) {
           </div>
 
           {/* Gentle educational disclaimer */}
-          <div className="flex items-start gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 text-xs text-amber-900 leading-relaxed">
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/70 p-3.5 sm:p-4 text-xs text-amber-900 leading-relaxed">
             <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
             <div>
               <span className="font-semibold">Active Recall Training:</span> When time runs out, the text will be hidden and you&apos;ll summarize key concepts from memory. Text copying is disabled to stimulate genuine cognitive retention.
@@ -590,7 +605,7 @@ export default function ReadPage({ params }: PageProps) {
           {renderArticle()}
 
           {/* Bottom Action: Big green Quiz / Summary button */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100">
+          <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 pt-4 border-t border-slate-100">
             {article.sections && article.sections.length > 1 ? (
               <button
                 onClick={handleBackToSectionPicker}
@@ -605,11 +620,27 @@ export default function ReadPage({ params }: PageProps) {
 
             <button
               onClick={timer.finish}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-7 py-3.5 font-bold text-white shadow-md hover:shadow-lg transition active:scale-[0.99] text-sm"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-6 sm:px-8 py-3.5 font-bold text-white shadow-md hover:shadow-lg transition active:scale-[0.99] text-sm"
             >
               <span>Finished Reading — Take Recall Quiz →</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Floating Bottom Bar for Fast Quiz Access on Phone */}
+      <div className="lg:hidden fixed bottom-4 inset-x-3 z-30 pointer-events-none">
+        <div className="mx-auto max-w-md rounded-2xl bg-slate-900/95 backdrop-blur-md p-2 shadow-xl border border-slate-800 flex items-center justify-between gap-2.5 pointer-events-auto">
+          <div className="flex items-center gap-1.5 pl-2.5 text-white text-xs font-mono">
+            <span className="text-slate-400">Time:</span>
+            <span className="font-bold">{Math.floor(timer.timeLeft / 60)}:{(timer.timeLeft % 60).toString().padStart(2, '0')}</span>
+          </div>
+          <button
+            onClick={timer.finish}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-sm transition active:scale-95"
+          >
+            <span>Take Recall Quiz →</span>
+          </button>
         </div>
       </div>
     </div>

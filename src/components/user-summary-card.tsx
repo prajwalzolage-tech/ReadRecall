@@ -51,16 +51,16 @@ export function UserSummaryCard({
 
   return (
     <div
-      className={`rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm transition ${className}`}
+      className={`rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-8 shadow-sm transition ${className}`}
     >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-slate-100 pb-4 sm:pb-5">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0">
               <FileText className="h-4 w-4" />
             </span>
-            <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
               Your Recall Summary
             </h3>
             {isRevision && (
@@ -76,12 +76,12 @@ export function UserSummaryCard({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           {trimmedSummary && (
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 transition active:scale-95"
               title="Copy summary to clipboard"
             >
               {copied ? (
@@ -102,7 +102,7 @@ export function UserSummaryCard({
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm hover:bg-slate-50 transition"
+              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-2xs hover:bg-slate-50 transition active:scale-95"
             >
               {isExpanded ? (
                 <>
@@ -122,7 +122,7 @@ export function UserSummaryCard({
 
       {/* Metrics & Context Bar */}
       {trimmedSummary ? (
-        <div className="mt-4 flex flex-wrap items-center gap-2.5 text-xs text-slate-600">
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-600">
           <span className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 font-mono font-medium text-slate-700">
             {wordCount} {wordCount === 1 ? 'word' : 'words'}
           </span>

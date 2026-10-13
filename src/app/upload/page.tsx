@@ -97,10 +97,10 @@ export default function UploadPage() {
             />
           )}
 
-          <div className="flex justify-end pt-4 border-t border-slate-100">
+          <div className="flex flex-col sm:flex-row justify-end pt-4 border-t border-slate-100">
             <button
               onClick={handleStartReading}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white shadow-sm hover:bg-slate-800 transition active:scale-[0.99]"
             >
               <span>Begin Timed Reading</span>
               <ArrowRight className="h-4 w-4" />
