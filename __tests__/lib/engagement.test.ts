@@ -206,21 +206,24 @@ describe('Engagement monitoring - Pure logic', () => {
       expect(back.focused).toBe(true);
     });
 
-    it('transitions to distracted only after candidate holds for at least 2 seconds', () => {
+    it('transitions to distracted only after candidate holds for at least 0.8 seconds', () => {
       const smoother = new EngagementSmoother();
       // Start focused at t = 0
       smoother.addFrame({ timestampMs: 0, focused: true, emotion: 'neutral' });
 
-      // Begin continuous distraction
+      // Begin continuous distraction at 150ms intervals (~6-7fps)
+      // With 1.5s window: at t=300 the distracted majority candidate is first established
+      // (focused=1 at t=0, distracted=2 at t=150,300 → distracted majority)
+      // The candidate must then hold for 800ms → transition at t >= 300+800 = 1100ms
       let lastState = smoother.getCurrent();
-      // 0.2s to 2.2s (distraction majority candidate established at 400ms, holds until 2400ms): should remain focused
-      for (let t = 200; t <= 2200; t += 200) {
+      for (let t = 150; t <= 1050; t += 150) {
         lastState = smoother.addFrame({ timestampMs: t, focused: false, emotion: 'neutral' });
       }
+      // At t=1050, candidate has held for 1050-300=750ms < 800ms: still focused
       expect(lastState.focused).toBe(true);
 
-      // At t = 2400ms (held for 2000ms since candidate at 400ms), state transitions to distracted
-      const transitioned = smoother.addFrame({ timestampMs: 2400, focused: false, emotion: 'neutral' });
+      // At t=1200, candidate has held for 1200-300=900ms >= 800ms: transitions to distracted
+      const transitioned = smoother.addFrame({ timestampMs: 1200, focused: false, emotion: 'neutral' });
       expect(transitioned.focused).toBe(false);
     });
 

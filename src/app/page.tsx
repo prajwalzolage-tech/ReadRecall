@@ -41,7 +41,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login');
+      router.push('/landing');
     }
   }, [loading, user, router]);
 

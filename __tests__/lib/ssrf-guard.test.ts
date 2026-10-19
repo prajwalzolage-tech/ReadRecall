@@ -42,5 +42,5 @@ describe('ssrf-guard', () => {
   it('permits valid public HTTPS research links', async () => {
     const res = await validateUrl('https://arxiv.org/pdf/1706.03762.pdf');
     expect(res.valid).toBe(true);
-  });
+  }, 15000);
 });

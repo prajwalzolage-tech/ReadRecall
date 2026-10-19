@@ -25,10 +25,10 @@ export const DEFAULT_ENGAGEMENT_THRESHOLDS: Readonly<EngagementThresholds> = Obj
   enjoyingSmileThreshold: 0.4,
   confusedBrowThreshold: 0.8,
   boredJawThreshold: 0.5,
-  fpsIntervalMs: 200, // ~5 fps
-  baselineDurationMs: 5000, // 5 seconds
-  smoothingWindowSec: 3, // 3-second sliding window
-  stateHoldSec: 2, // 2-second state hold before switching
+  fpsIntervalMs: 150, // ~6-7 fps — faster response than 200ms
+  baselineDurationMs: 3000, // 3 seconds — faster calibration startup
+  smoothingWindowSec: 1.5, // 1.5-second sliding window — snappier transitions
+  stateHoldSec: 0.8, // 0.8-second state hold — much faster UI feedback
 });
 
 export interface BlendshapeScores {

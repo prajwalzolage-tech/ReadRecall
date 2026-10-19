@@ -72,7 +72,8 @@ export function useEngagement(active: boolean): UseEngagementReturn {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const landmarkerRef = useRef<any>(null);
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const lastDetectTimeRef = useRef<number>(0);
 
   const [internalStatus, setInternalStatus] = useState<EngagementStatus>('idle');
   const status: EngagementStatus = active ? internalStatus : 'idle';
@@ -97,9 +98,9 @@ export function useEngagement(active: boolean): UseEngagementReturn {
   const lastTimestampRef = useRef<number>(0);
 
   const stopCamera = useCallback(() => {
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
     }
 
     if (streamRef.current) {
@@ -230,26 +231,40 @@ export function useEngagement(active: boolean): UseEngagementReturn {
 
         setInternalStatus('active');
 
-        // 4. Run detection loop at ~5 fps (200ms)
-        const intervalMs = DEFAULT_ENGAGEMENT_THRESHOLDS.fpsIntervalMs;
+        // 4. Detection loop via requestAnimationFrame with time-based throttling.
+        //    Unlike setInterval, rAF never stacks: the next detection only runs
+        //    AFTER the previous one finishes AND enough time has elapsed.
+        const minIntervalMs = DEFAULT_ENGAGEMENT_THRESHOLDS.fpsIntervalMs;
+        lastDetectTimeRef.current = 0;
 
-        timerIntervalRef.current = setInterval(() => {
+        const detectFrame = () => {
           const video = videoRef.current;
-          if (!video || !landmarkerRef.current) return;
+          if (!video || !landmarkerRef.current || isCancelled) return;
+
+          // Throttle: skip this frame if not enough time has passed
+          const now = performance.now();
+          if (now - lastDetectTimeRef.current < minIntervalMs) {
+            rafIdRef.current = requestAnimationFrame(detectFrame);
+            return;
+          }
+
           if (
             video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
             video.paused ||
             video.videoWidth === 0 ||
             video.videoHeight === 0
           ) {
+            rafIdRef.current = requestAnimationFrame(detectFrame);
             return;
           }
+
+          lastDetectTimeRef.current = now;
 
           const nowMs = Date.now();
           const sessionElapsedMs = nowMs - startTimeRef.current;
 
           // MediaPipe requires strictly monotonically increasing integer timestamps
-          let timestamp = Math.round(performance.now());
+          let timestamp = Math.round(now);
           if (timestamp <= lastTimestampRef.current) {
             timestamp = lastTimestampRef.current + 1;
           }
@@ -264,6 +279,7 @@ export function useEngagement(active: boolean): UseEngagementReturn {
             if (!errStr.includes('INFO:') && !errStr.includes('XNNPACK')) {
               console.warn('[useEngagement] Detection error:', detErr);
             }
+            rafIdRef.current = requestAnimationFrame(detectFrame);
             return;
           }
 
@@ -275,7 +291,7 @@ export function useEngagement(active: boolean): UseEngagementReturn {
 
           if (!hasFace) {
             consecutiveNoFaceRef.current++;
-            if (consecutiveNoFaceRef.current >= 4) {
+            if (consecutiveNoFaceRef.current >= 2) {
               setInternalStatus('no-face');
             }
           } else {
@@ -305,7 +321,7 @@ export function useEngagement(active: boolean): UseEngagementReturn {
             timestampMs: sessionElapsedMs,
           };
 
-          // 5-second baseline accumulation
+          // Baseline accumulation
           if (sessionElapsedMs < DEFAULT_ENGAGEMENT_THRESHOLDS.baselineDurationMs) {
             if (hasFace && !frameInput.documentHidden) {
               baselineSamplesRef.current.push(frameInput);
@@ -317,7 +333,7 @@ export function useEngagement(active: boolean): UseEngagementReturn {
           // Per-frame classification against baseline
           const classified = classifyFrame(frameInput, baselineRef.current);
 
-          // Smooth with 3s sliding window & 2s state hold
+          // Smooth with sliding window & state hold
           const smoothed = smootherRef.current.addFrame(classified);
 
           // Extract bounding box from face landmarks for live camera UI
@@ -370,7 +386,13 @@ export function useEngagement(active: boolean): UseEngagementReturn {
             faceBox,
             focusScore,
           });
-        }, intervalMs);
+
+          // Schedule next frame
+          rafIdRef.current = requestAnimationFrame(detectFrame);
+        };
+
+        // Kick off the rAF detection loop
+        rafIdRef.current = requestAnimationFrame(detectFrame);
       } catch (err: any) {
         if (isCancelled) return;
         const errName = err?.name || '';
