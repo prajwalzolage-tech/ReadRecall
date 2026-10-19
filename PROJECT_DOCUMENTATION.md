@@ -135,15 +135,9 @@ ReadRecall enforces: **Read (timed & monitored) → Article Hidden → Write fro
 
 ### 9.1 Demonstration Video & Project Links
 
-- **YouTube Demonstration Link:** `https://youtu.be/YOUR_DEMO_VIDEO_ID` *(Replace with your unlisted or public demonstration video link)*
-  - *Recommended Video Demo Structure (2–3 minutes):*
-    1. **0:00–0:30:** Problem context (passive reading trap) & Problem Statement code **PRAYAS-INFO-26-S-007**.
-    2. **0:30–1:15:** Active recall reading workflow (reading timer countdown, on-device webcam focus monitor, article unmounting from DOM).
-    3. **1:15–2:00:** Writing from memory, submitting summary, instant 1–10 Jev multi-dimension evaluation (<15ms latency), and real-time streamed AI tutor coaching.
-    4. **2:00–2:30:** "Reveal & Revise" loop highlighting missed key points, side-by-side recall text comparison, and improvement delta on resubmission.
-    5. **2:30–3:00:** Document upload with magic-byte verification, arXiv scholarly search with Unpaywall open-access resolution, and offline benchmark metrics.
-- **Live Production Deployment:** `https://readrecall.vercel.app` *(or your configured Vercel deployment domain)*
-- **GitHub Source Code Repository:** `https://github.com/prajwalzolage55/ReadRecall`
+- **YouTube Demonstration Link:** https://youtu.be/EiNBXNEo4xM
+- **Live Production Deployment:** https://readrecall.vercel.app
+- **GitHub Source Code Repository:** https://github.com/prajwalzolage-tech/ReadRecall
 
 ### 9.2 Key Artifacts Included in Project
 

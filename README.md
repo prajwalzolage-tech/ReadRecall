@@ -1,7 +1,8 @@
 # ReadRecall — Active Recall Reading & Comprehension Platform
 
 > **Project Code:** PRAYAS-INFO-26-S-007  
-> **Core Concept:** Timed technical article reading → article is strictly hidden → student writes a summary from memory → instant 1–10 rating + streamed AI coaching feedback.
+> **Core Concept:** Timed technical article reading → article is strictly hidden → student writes a summary from memory → instant 1–10 rating + streamed AI coaching feedback.  
+> **Live Demo:** [readrecall.vercel.app](https://readrecall.vercel.app) | **Video Walkthrough:** [YouTube Demo](https://youtu.be/EiNBXNEo4xM) | **GitHub:** [prajwalzolage-tech/ReadRecall](https://github.com/prajwalzolage-tech/ReadRecall)
 
 ---
 
